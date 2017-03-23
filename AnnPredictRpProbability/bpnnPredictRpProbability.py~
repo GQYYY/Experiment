@@ -1,0 +1,40 @@
+#!/usr/bin/env python
+# coding=utf-8
+
+import numpy as np
+import tensorflow as tf 
+import dataProcessor as dp 
+
+ ds = 0.0
+ L1_loss = 0.0
+ 
+ _layer(inputs, in_size, out_size, activate=None,keep_prob=1.0):
+ 
+     #weights = tf.get_variable('weights',[in_size, out_size],initializer = tf.random_normal_initializer(-1,1))
+             #weights = tf.Variable(tf.random_normal([in_size, out_size]))
+                     weights = tf.Variable(tf.random_uniform([in_size, out_size],-1.0,1.0))
+                             
+                                     #L2正则项
+                                             global L2_loss
+                                                     L2_loss += tf.nn.l2_loss(weights)
+                                                             #L1正则项 
+                                                                     global L1_loss
+                                                                             L1_loss += tf.reduce_sum(tf.abs(weights))
+                                                                             
+                                                                                     #biases = tf.Variable(tf.zeros([1, out_size]) + 0.1)
+                                                                                             #返回一个shape为[1, out_size]的tensor，其中的元素服从minval和maxval之间的均匀分布
+                                                                                                     #biases = tf.Variable(tf.random_uniform([1,out_size],minval=-1,maxval=1))
+                                                                                                             biases = tf.Variable(tf.constant(0.1,shape=[1,out_size]))
+                                                                                                             
+                                                                                                                     L2_loss += tf.nn.l2_loss(biases)
+                                                                                                                             L1_loss += tf.reduce_sum(tf.abs(biases))
+                                                                                                                                     #biases = tf.get_variable('biases',[1, out_size],initializer = tf.random_normal_initializer(-1,1))
+                                                                                                                                             result = tf.matmul(inputs, weights) + biases
+                                                                                                                                                     result = tf.nn.dropout(result,keep_prob)
+                                                                                                                                                             #print  in_size, out_size
+                                                                                                                                                             
+                                                                                                                                                                     if activate is None:
+                                                                                                                                                                                     return result
+                                                                                                                                                                                         else:
+                                                                                                                                                                                                         return activate(result)
+                                                                                                                                                                                                     f
