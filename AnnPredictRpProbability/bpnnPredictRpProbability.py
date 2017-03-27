@@ -102,8 +102,8 @@ class bpnnPredictRpProbability:
 		print 'test_outputs.shape:',self.test_outputs.shape
 
 		#使用cross_entropy函数作为loss函数
-		self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.output_layer, self.label_layer)) + lambda_l1 * L1_loss +lambda_l2 * L2_loss
-		#self.loss = tf.reduce_mean(-tf.reduce_sum(self.label_layer * tf.log(self.output_layer))) + lambda_l1 * L1_loss +lambda_l2 * L2_loss
+		self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.output_layer, self.label_layer)) + lambda_l1 * L1_loss +lambda_l2 * L2_loss   #
+		#self.loss = tf.reduce_mean(-tf.reduce_sum(self.label_layer * tf.log(self.output_layer))) + lambda_l1 * L1_loss +lambda_l2 * L2_loss                  #
 
 		#self.optimizer = tf.train.GradientDescentOptimizer(learn_rate).minimize(self.loss)
 		self.optimizer = tf.train.AdamOptimizer(learn_rate).minimize(self.loss)
@@ -165,22 +165,40 @@ def dataToOne_hotVector(_label,row,col):
 
 if __name__ == '__main__':
 
-	#from tf_kmeans import TFKMeans as KMeans
-	#from kmeans import KMeans
-	from sklearn.cluster import KMeans
+	
+	'''
 	#两个参数分别为（训练数据文件名，测试数据文件名）
 	dataProcessor = dp.dataProcessor(r'data4trainingNexus',r'bai4testing_1_4.log')
 	#获得训练指纹(12400*92)
 	trainingApFingerprints = dataProcessor.getTrainingApFingerprints() +100
 	#traingingCoordinates = dataProcessor.getTrainingCoordinates()
 	#获取和训练指纹所对应的RP的编号(12400*124)
-	#trainingCoordinatesId = dataProcessor.getTrainingCoordinatesId()
+	trainingCoordinatesId = dataProcessor.getTrainingCoordinatesId()
 	#获取测试指纹
 	testingApFingerprints = dataProcessor.getTestingApFingerprints() + 100
 	#获取和训练指纹所对应的RP的编号
-	#testingCoordinatesId = dataProcessor.getTestingCoordinatesId()
+	testingCoordinatesId = dataProcessor.getTestingCoordinatesId()
+	#testingCoordinates = dataProcessor.getTestingCoordinates()
+
+	np.save('./Data/trainingApFingerprints',trainingApFingerprints)
+	np.save('./Data/trainingCoordinatesId',trainingCoordinatesId)
+	np.save('./Data/traingingCoordinates',traingingCoordinates)
+	np.save('./Data/testingApFingerprints',testingApFingerprints)
+	np.save('./Data/testingCoordinatesId',testingCoordinatesId)
+	np.save('./Data/testingCoordinates',testingCoordinates)
+	print '保存完毕'
+	'''
+	#载入数据
+	trainingApFingerprints = np.load('./Data/trainingApFingerprints.npy')
+	trainingCoordinatesId = np.load('./Data/trainingCoordinatesId.npy') #one-hot vector
+	trainingCoordinatesId = np.argmax(trainingCoordinatesId,axis=1)
+	testingApFingerprints = np.load('./Data/testingApFingerprints.npy')
+	testingCoordinatesId = np.load('./Data/testingCoordinatesId.npy') #one-hot vector 
+	testingCoordinatesId = np.argmax(testingCoordinatesId,axis=1)	
 
 	'''
+	#***********************tensorflow_KMeans by LHT
+	from tf_kmeans import TFKMeans as KMeans
 	kms = KMeans(k=15)
 	#kms.train(trainingApFingerprints)
 	kms.train(traingingCoordinates)
@@ -193,17 +211,42 @@ if __name__ == '__main__':
 	print trainingCoordinatesId
 	'''
 
-	kms = KMeans(n_clusters=15,max_iter=600)
-	kms.fit(trainingApFingerprints)
-	predict_labels = kms.predict(testingApFingerprints)
-	print 'trainging labels:'
-	print kms.labels_[:50]
-	print 'testing labels:'
-	print predict_labels[:50]
 
+	from sklearn.decomposition import PCA
+	from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+	from sklearn.cluster import KMeans
 
-	trainingCoordinatesId = dataToOne_hotVector(kms.labels_,trainingApFingerprints.shape[0],15)
+	#PCA降维
+	pca = PCA()
+	pca_tsfm_trainingApFingerprints = pca.fit(trainingApFingerprints).transform(trainingApFingerprints)
+	pca_tsfm_testingApFingerprints = pca.fit(testingApFingerprints).transform(testingApFingerprints)
+	#print 'PCA explained variance ratio: %s' % str(pca.explained_variance_ratio_)
+
+	#LDA降维
+	lda = LDA()
+	lda_tsfm_trainingApFingerprints = lda.fit(trainingApFingerprints,trainingCoordinatesId).transform(trainingApFingerprints)
+	lda_tsfm_testingApFingerprints = lda.fit(testingApFingerprints,testingCoordinatesId).transform(testingApFingerprints)
+	#print 'LDA explained variance ratio: %s' % str(lda.explained_variance_ratio_)
+
+	#不使用降维进行Kmeans
+	kmeans = KMeans(n_clusters=15).fit(trainingApFingerprints)
+	predict_labels = kmeans.predict(testingApFingerprints)
+	trainingCoordinatesId = dataToOne_hotVector(kmeans.labels_,trainingApFingerprints.shape[0],15)
 	testingCoordinatesId = dataToOne_hotVector(predict_labels,testingApFingerprints.shape[0],15)
+
+	#使用PCA降维，再进行Kmeans
+	pca_kmeans = KMeans(n_clusters=15).fit(pca_tsfm_trainingApFingerprints)
+	pca_predict_labels = pca_kmeans.predict(pca_tsfm_testingApFingerprints)
+	trainingCoordinatesId = dataToOne_hotVector(pca_kmeans.labels_,trainingApFingerprints.shape[0],15)
+	testingCoordinatesId = dataToOne_hotVector(pca_predict_labels,testingApFingerprints.shape[0],15)
+
+	#使用LDA降维，再进行Kmeans
+	lda_kmeans = KMeans(n_clusters=15).fit(lda_tsfm_traingApFingerprints)
+	lda_predict_labels = lda_kmeans.predict(lda_tsfm_testingApFingerprints)
+	trainingCoordinatesId = dataToOne_hotVector(lda_kmeans.labels_,trainingApFingerprints.shape[0],15)
+	testingCoordinatesId = dataToOne_hotVector(lda_predict_labels,testingApFingerprints.shape[0],15)
+
+	
 
 	
 	nn = bpnnPredictRpProbability(trainingApFingerprints,trainingCoordinatesId,testingApFingerprints,testingCoordinatesId)

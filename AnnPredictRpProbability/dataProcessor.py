@@ -10,7 +10,8 @@ class dataProcessor:
         self.testingFile = testingFile #存储测试数据的文件名
         #self.path = r'/home/gqy/Desktop/AnnPredictRpProbability/Data/'
         #self.path = r'/home/lirui/Projects/DeepLearning/GQY/GQY-20170225-AnnPositioning/AnnPositioning/Data/' #训练文件和测试文件的路径
-        self.path = r'/Users/tmac/Desktop/AnnPredictRpProbability/Data/'
+        #self.path = r'/Users/tmac/Desktop/AnnPredictRpProbability/Data/'
+        self.path = r'/home/gqy/Desktop/Experiment/AnnPredictRpProbability/Data/'
         self.apList = self.__getApList() #所有出现的AP的列表，即特征列表
         self.traningApFingerprints,self.trainingCoordinates = self.__getApFingerprintsAndCoordinates(self.trainingFile)
         self.testingApFingerprints,self.testingCoordinates = self.__getApFingerprintsAndCoordinates(self.testingFile)
