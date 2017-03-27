@@ -94,7 +94,7 @@ class bpnnPredictRpProbability:
 		self.output_layer = make_layer(self.hidden_layers[-1], self.hidden_size[-1], self.output_n,activate=tf.nn.softmax)
 
 
-	def trainAndTest(self,epochs=150,learn_rate=1e-4,keep_prob=0.8,batch_size=64,lambda_l1=0.0,lambda_l2=0.1):
+	def trainAndTest(self,epochs=100,learn_rate=1e-4,keep_prob=0.8,batch_size=64,lambda_l1=0.0,lambda_l2=0.1):
 
 		print 'train_inputs.shape:',self.train_inputs.shape
 		print 'train_outputs.shape:',self.train_outputs.shape
@@ -229,22 +229,25 @@ if __name__ == '__main__':
 	#print 'LDA explained variance ratio: %s' % str(lda.explained_variance_ratio_)
 
 	#不使用降维进行Kmeans
-	kmeans = KMeans(n_clusters=15).fit(trainingApFingerprints)
-	predict_labels = kmeans.predict(testingApFingerprints)
-	trainingCoordinatesId = dataToOne_hotVector(kmeans.labels_,trainingApFingerprints.shape[0],15)
-	testingCoordinatesId = dataToOne_hotVector(predict_labels,testingApFingerprints.shape[0],15)
+	# kmeans = KMeans(n_clusters=15).fit(trainingApFingerprints)
+	# predict_labels = kmeans.predict(testingApFingerprints)
+	# trainingCoordinatesId = dataToOne_hotVector(kmeans.labels_,trainingApFingerprints.shape[0],15)
+	# testingCoordinatesId = dataToOne_hotVector(predict_labels,testingApFingerprints.shape[0],15)
+	# print '**********不使用降维进行KMeans'
 
 	#使用PCA降维，再进行Kmeans
 	pca_kmeans = KMeans(n_clusters=15).fit(pca_tsfm_trainingApFingerprints)
 	pca_predict_labels = pca_kmeans.predict(pca_tsfm_testingApFingerprints)
 	trainingCoordinatesId = dataToOne_hotVector(pca_kmeans.labels_,trainingApFingerprints.shape[0],15)
 	testingCoordinatesId = dataToOne_hotVector(pca_predict_labels,testingApFingerprints.shape[0],15)
+	print '**********先使用PCA降维，再进行KMeans'
 
 	#使用LDA降维，再进行Kmeans
-	lda_kmeans = KMeans(n_clusters=15).fit(lda_tsfm_traingApFingerprints)
-	lda_predict_labels = lda_kmeans.predict(lda_tsfm_testingApFingerprints)
-	trainingCoordinatesId = dataToOne_hotVector(lda_kmeans.labels_,trainingApFingerprints.shape[0],15)
-	testingCoordinatesId = dataToOne_hotVector(lda_predict_labels,testingApFingerprints.shape[0],15)
+	# lda_kmeans = KMeans(n_clusters=15).fit(lda_tsfm_traingApFingerprints)
+	# lda_predict_labels = lda_kmeans.predict(lda_tsfm_testingApFingerprints)
+	# trainingCoordinatesId = dataToOne_hotVector(lda_kmeans.labels_,trainingApFingerprints.shape[0],15)
+	# testingCoordinatesId = dataToOne_hotVector(lda_predict_labels,testingApFingerprints.shape[0],15)
+	# print '**********先使用LDA降维，再进行KMeans'
 
 	
 
