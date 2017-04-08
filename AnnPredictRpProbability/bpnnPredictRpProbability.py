@@ -3,7 +3,7 @@
 
 import numpy as np
 import tensorflow as tf
-#import dataProcessor as dp
+import dataProcessor as dp
 import time
 import data_helper
 
@@ -177,23 +177,28 @@ if __name__ == '__main__':
     dataProcessor = dp.dataProcessor(r'data4trainingNexus',r'bai4testing_1_4.log')
     #获得训练指纹(12400*92)
     trainingApFingerprints = dataProcessor.getTrainingApFingerprints() +100
-    #traingingCoordinates = dataProcessor.getTrainingCoordinates()
+    trainingCoordinates = dataProcessor.getTrainingCoordinates()
+    #获得所有的位置列表
+    coordinatesList = dataProcessor.getCoordinatesList()
     #获取和训练指纹所对应的RP的编号(12400*124)
     trainingCoordinatesId = dataProcessor.getTrainingCoordinatesId()
     #获取测试指纹
     testingApFingerprints = dataProcessor.getTestingApFingerprints() + 100
     #获取和训练指纹所对应的RP的编号
     testingCoordinatesId = dataProcessor.getTestingCoordinatesId()
-    #testingCoordinates = dataProcessor.getTestingCoordinates()
+    testingCoordinates = dataProcessor.getTestingCoordinates()
 
     np.save('./Data/trainingApFingerprints',trainingApFingerprints)
     np.save('./Data/trainingCoordinatesId',trainingCoordinatesId)
-    np.save('./Data/traingingCoordinates',traingingCoordinates)
+    np.save('./Data/trainingCoordinates',trainingCoordinates)
     np.save('./Data/testingApFingerprints',testingApFingerprints)
     np.save('./Data/testingCoordinatesId',testingCoordinatesId)
     np.save('./Data/testingCoordinates',testingCoordinates)
+    np.save('./Data/coordinatesList',coordinatesList)
     print ('保存完毕')
     '''
+
+
     #载入数据
     trainingApFingerprints = np.load('./Data/trainingApFingerprints.npy')
     trainingCoordinatesId = np.load('./Data/trainingCoordinatesId.npy') #one-hot vector
@@ -202,20 +207,7 @@ if __name__ == '__main__':
     testingCoordinatesId = np.load('./Data/testingCoordinatesId.npy') #one-hot vector
     testingCoordinatesId = np.argmax(testingCoordinatesId,axis=1)
 
-    '''
-    #***********************tensorflow_KMeans by LHT
-    from tf_kmeans import TFKMeans as KMeans
-    kms = KMeans(k=15)
-    #kms.train(trainingApFingerprints)
-    kms.train(traingingCoordinates)
-    np.save('tf_centers.npy', kms._centers)
-    np.save('tf_labels.npy', kms._label)
 
-    _label = np.load("tf_labels.npy")
-    print (_label[:200])
-    trainingCoordinatesId = dataToOne_hotVector(_label, trainingApFingerprints.shape[0], 15)
-    print (trainingCoordinatesId)
-    '''
 
 
     from sklearn.decomposition import PCA
