@@ -82,7 +82,8 @@ def nn_train(train_set,train_label,test_set,test_label):
         #使用cross_entropy函数作为loss函数
         #cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(output_layer, label_)) + lambda_l1 * L1_loss +lambda_l2 * L2_loss   #高版本tensorflow
         #cross_entropy = tf.reduce_mean(-tf.reduce_sum(label_ * tf.log(output_layer))) + lambda_l1 * L1_loss +lambda_l2 * L2_loss                   #低版本tensorflow
-        cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(output_layer,tf.argmax(label_,1))) + params['lambda_l1'] * L1_loss + params['lambda_l2'] * L2_loss #针对只有一个正确答案的分类更高效
+        cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(output_layer,tf.argmax(label_,1))) \
+                + params['lambda_l1'] * L1_loss + params['lambda_l2'] * L2_loss #针对只有一个正确答案的分类更高效
         #tf.scaler_summary('cross_entropy',cross_entropy)  #for tensorflow < 0.12
         tf.summary.scalar('cross_entropy',cross_entropy)  #for tensorflow >= 0.12
 
@@ -147,12 +148,6 @@ def nn_train(train_set,train_label,test_set,test_label):
     summary_writer.close()
 
 
-def rp_cluster_show():
-    corlors = ['#000000','#ccad60','#bff128','#0a481e','#49759c',
-            '#fb5ffc','#e50000','#33b864','#490648','#fcc006',
-            '#a8a495','#6c3461','#f8481c','#a2bffe','0343df']
-    test_color = '#36013f'
-
 
 def main(_):
     '''step 0: load original train_set,train_label and original test_set, test_label'''
@@ -181,11 +176,24 @@ def main(_):
     test_cluster_labels = dataToOne_hotVector(pca_predict_labels,testingApFingerprints.shape[0],15)
     print ('**********先使用PCA降维，再进行KMeans')
 
-
+    '''step 1.3: plot the Rps and clusters'''
+    from matplotlib.pyplot as plt
+    plt.figure(1)
+    corlors = ['#000000','#ccad60','#bff128','#0a481e','#49759c',
+            '#fb5ffc','#e50000','#33b864','#490648','#fcc006',
+            '#a8a495','#6c3461','#f8481c','#a2bffe','0343df']
+    test_color = '#36013f'
+    for i in range(15):
+        rpCoodinates = coordinatesList[trainingCoordinatesId[np.where(pca_kmeans.labels_ == i)]]
+        rpCoodinates = np.unique(rpCoodinates)
+        print ('***************')
+        print (rpCoodinates)
+        print ('')
     '''step 2: train neural network and test'''
     #nn_train(pca_tsfm_trainingApFingerprints,train_cluster_labels,pca_tsfm_testingApFingerprints,test_cluster_labels)
 
 
 if __name__ == '__main__':
     #python3 train_bpnn_pca.py ./parameters.json
+
     tf.app.run()
