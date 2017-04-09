@@ -158,7 +158,7 @@ def main(_):
     testingCoordinatesId = np.load('./Data/testingCoordinatesId.npy')             #test label,one-hot vector
     testingCoordinatesId = np.argmax(testingCoordinatesId,axis=1)                 #test label, array
     coordinatesList = np.load('./Data/coordinatesList.npy')
-    print(coordinatesList)
+
     '''step 1: PCA feature reduction and then KMeans'''
     '''step 1.1: PCA feature reduction'''
     from sklearn.decomposition import PCA
@@ -177,12 +177,14 @@ def main(_):
     print ('**********先使用PCA降维，再进行KMeans')
 
     '''step 1.3: plot the Rps and clusters'''
-    from matplotlib.pyplot as plt
-    plt.figure(1)
+    import matplotlib.pyplot as plt
+    #plt.figure(1)
     corlors = ['#000000','#ccad60','#bff128','#0a481e','#49759c',
             '#fb5ffc','#e50000','#33b864','#490648','#fcc006',
             '#a8a495','#6c3461','#f8481c','#a2bffe','0343df']
     test_color = '#36013f'
+    print(coordinatesList)
+    print(coordinatesList.shape)
     for i in range(15):
         rpCoodinates = coordinatesList[trainingCoordinatesId[np.where(pca_kmeans.labels_ == i)]]
         rpCoodinates = np.unique(rpCoodinates)
