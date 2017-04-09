@@ -186,8 +186,8 @@ def main(_):
     print(coordinatesList)
     print(coordinatesList.shape)
     for i in range(15):
-        rpCoodinates = coordinatesList[trainingCoordinatesId[np.where(pca_kmeans.labels_ == i)]]
-        rpCoodinates = np.unique(rpCoodinates)
+        rpCoodinates = coordinatesList[trainingCoordinatesId[np.where(pca_kmeans.labels_ == i)],:]
+        #rpCoodinates = np.unique(rpCoodinates)
         print ('***************')
         print (rpCoodinates)
         print ('')
