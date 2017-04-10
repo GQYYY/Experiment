@@ -183,13 +183,16 @@ def main(_):
             '#fb5ffc','#e50000','#33b864','#490648','#fcc006',
             '#a8a495','#6c3461','#f8481c','#a2bffe','0343df']
     test_color = '#36013f'
-    print(coordinatesList)
+    #print(coordinatesList)
     print(coordinatesList.shape)
     for i in range(15):
-        rpCoodinates = coordinatesList[trainingCoordinatesId[np.where(pca_kmeans.labels_ == i)],:]
-        #rpCoodinates = np.unique(rpCoodinates)
+        print(np.unique(trainingCoordinatesId).size)
+        rpCoordinates = coordinatesList[trainingCoordinatesId[np.where(pca_kmeans.labels_ == i)],:]
+        #rpCoordinates = np.unique(rpCoordinates)
+        rpCoordinates = np.array(list(set([tuple(coordinate) for coordinate in rpCoordinates.tolist()])))
         print ('***************')
-        print (rpCoodinates)
+        print (rpCoordinates)
+        print(rpCoordinates.size)
         print ('')
     '''step 2: train neural network and test'''
     #nn_train(pca_tsfm_trainingApFingerprints,train_cluster_labels,pca_tsfm_testingApFingerprints,test_cluster_labels)
