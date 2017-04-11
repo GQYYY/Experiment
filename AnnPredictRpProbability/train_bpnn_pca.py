@@ -177,23 +177,26 @@ def main(_):
     print ('**********先使用PCA降维，再进行KMeans')
 
     '''step 1.3: plot the Rps and clusters'''
-    import matplotlib.pyplot as plt
-    #plt.figure(1)
-    corlors = ['#000000','#ccad60','#bff128','#0a481e','#49759c',
-            '#fb5ffc','#e50000','#33b864','#490648','#fcc006',
-            '#a8a495','#6c3461','#f8481c','#a2bffe','0343df']
-    test_color = '#36013f'
-    #print(coordinatesList)
-    print(coordinatesList.shape)
-    for i in range(15):
-        print(np.unique(trainingCoordinatesId).size)
-        rpCoordinates = coordinatesList[trainingCoordinatesId[np.where(pca_kmeans.labels_ == i)],:]
-        #rpCoordinates = np.unique(rpCoordinates)
-        rpCoordinates = np.array(list(set([tuple(coordinate) for coordinate in rpCoordinates.tolist()])))
-        print ('***************')
-        print (rpCoordinates)
-        print(rpCoordinates.size)
-        print ('')
+    # import matplotlib.pyplot as plt
+    # #plt.figure(1)
+    # corlors = ['#000000','#ccad60','#bff128','#0a481e','#49759c',
+    #         '#fb5ffc','#e50000','#33b864','#490648','#fcc006',
+    #         '#a8a495','#6c3461','#f8481c','#a2bffe','0343df']
+    # test_color = '#36013f'
+    # #print(coordinatesList)
+    # print(coordinatesList.shape)
+    # for i in range(15):
+    #     print(np.unique(trainingCoordinatesId).size)
+    #     rpCoordinates = coordinatesList[trainingCoordinatesId[np.where(pca_kmeans.labels_ == i)],:]
+    #     #rpCoordinates = np.unique(rpCoordinates)
+    #     rpCoordinates = np.array(list(set([tuple(coordinate) for coordinate in rpCoordinates.tolist()])))
+    #     print ('***************')
+    #     print (rpCoordinates)
+    #     print(rpCoordinates.size)
+    #     print ('')
+
+    '''step 1.3.1: Analyse the cluster each RP belongs to, and the set of RPs each cluster consist of'''
+    data_helper.cluster_anls(pca_kmeans.labels_,pca_tsfm_trainingApFingerprints,trainingCoordinatesId,coordinatesList)
     '''step 2: train neural network and test'''
     #nn_train(pca_tsfm_trainingApFingerprints,train_cluster_labels,pca_tsfm_testingApFingerprints,test_cluster_labels)
 
