@@ -8,6 +8,15 @@ import data_helper
 import sys
 import json
 
+# store original data 
+class DataHolder:
+    def __init__(self,global_train_set,global_train_label,global_test_set,global_test_label):
+        self.global_train_set_ = global_train_set
+        self.global_train_label_ = global_train_label
+        self.global_test_set_ = global_test_set
+        self.global_test_label_ = global_test_label
+
+
 L1_loss = 0.0 #L1正则项
 L2_loss = 0.0 #L2正则项
 
