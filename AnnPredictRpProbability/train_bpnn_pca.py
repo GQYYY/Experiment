@@ -170,17 +170,20 @@ def main(_):
     #print (np.where(cum_ratio>=0.95))
     '''step 1.2: KMeans'''
     from sklearn.cluster import KMeans
-    pca_kmeans = KMeans(n_clusters=15).fit(pca_tsfm_trainingApFingerprints) #KMeans
-    pca_predict_labels = pca_kmeans.predict(pca_tsfm_testingApFingerprints)
-    train_cluster_labels = dataToOne_hotVector(pca_kmeans.labels_,trainingApFingerprints.shape[0],15)
-    test_cluster_labels = dataToOne_hotVector(pca_predict_labels,testingApFingerprints.shape[0],15)
+    pca_tsfm_train_test_fingerpringts = np.concatenate((pca_tsfm_trainingApFingerprints,pca_tsfm_testingApFingerprints),axis=0)
+    pca_kmeans = KMeans(n_clusters=15).fit(pca_tsfm_train_test_fingerpringts) #KMeans
+    #pca_kmeans = KMeans(n_clusters=15).fit(pca_tsfm_trainingApFingerprints) #KMeans
+    #pca_predict_labels = pca_kmeans.predict(pca_tsfm_testingApFingerprints)
+    train_cluster_labels = dataToOne_hotVector(pca_kmeans.labels_[:trainingApFingerprints.shape[0]],trainingApFingerprints.shape[0],15)
+    test_cluster_labels = dataToOne_hotVector(pca_kmeans.labels_[trainingApFingerprints.shape[0]:],testingApFingerprints.shape[0],15)
+    #test_cluster_labels = dataToOne_hotVector(pca_predict_labels,testingApFingerprints.shape[0],15)
     print ('**********先使用PCA降维，再进行KMeans')
 
 
     '''step 1.3: Analyse the cluster each RP belongs to, and the set of RPs each cluster consist of'''
-    data_helper.cluster_anls(pca_kmeans.labels_,pca_tsfm_trainingApFingerprints,trainingCoordinatesId,coordinatesList)
+    #data_helper.cluster_anls(pca_kmeans.labels_,pca_tsfm_trainingApFingerprints,trainingCoordinatesId,coordinatesList)
     '''step 2: train neural network and test'''
-    #nn_train(pca_tsfm_trainingApFingerprints,train_cluster_labels,pca_tsfm_testingApFingerprints,test_cluster_labels)
+    nn_train(pca_tsfm_trainingApFingerprints,train_cluster_labels,pca_tsfm_testingApFingerprints,test_cluster_labels)
 
 
 if __name__ == '__main__':
