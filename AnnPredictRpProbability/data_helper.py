@@ -29,7 +29,7 @@ def batch_iter(x, y, batch_size, shuffle=True):
 
 def cluster_anls(cluster_labels,fingerprints,coords_id,coords_list):
     """
-    Analyse the cluster each RP belongs to, and the set of RPs each cluster consist of. 
+    Analyse the cluster each RP belongs to, and the set of RPs each cluster consist of.
     """
     import xlwt
     workbook = xlwt.Workbook()
@@ -54,7 +54,7 @@ def cluster_anls(cluster_labels,fingerprints,coords_id,coords_list):
 
     uniq_clst_labels = np.unique(cluster_labels)
     start = 1
-    end = 1 
+    end = 1
     for clst_label in uniq_clst_labels:
         coord_set = coords_list[coords_id[np.where(cluster_labels == clst_label)],:].tolist()
         coord_set = list(set([tuple(coord) for coord in coord_set]))
