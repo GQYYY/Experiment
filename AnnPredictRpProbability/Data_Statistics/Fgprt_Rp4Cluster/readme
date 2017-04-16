@@ -1,0 +1,7 @@
+=================================================================
+Seperate the corresponding WLAN fingerprints and RP coordinates
+for each cluster.
+For example, 'fingerprints_1.npy' indicates the numpy array file
+for RP cluster 1, and rp_id_1.npy is refered to as the array of 
+coordinate id in the coordinate list.
+================================================================= 

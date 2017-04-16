@@ -136,7 +136,8 @@ def nn_train(train_set,train_label,test_set,test_label):
             #进行测试
             print ('epoch', epoch+1, 'loss:', sess.run(cross_entropy, feed_dict = {input_:train_set,label_:train_label,keep_prob:1.0}))
             print ('epoch', epoch+1, 'train accuracy:', sess.run(accuracy, feed_dict = {input_:train_set,label_:train_label,keep_prob:1.0}))
-            print ('epoch', epoch+1, 'test accuracy:', sess.run(accuracy,feed_dict = {input_:test_set,label_:test_label,keep_prob:1.0}))
+            print ('epoch', epoch+1, 'train mean dist error:',sess.run(mean_dist_error(output_layer),feed_dict={input_:train_set,label_:train_label,keep_prob:1.0}))
+            print ('epoch', epoch+1, 'test mean dist error:', sess.run(mean_dist_error(output_layer),feed_dict = {input_:test_set,label_:test_label,keep_prob:1.0}))
             print ('*'*30)
             print ('')
 
@@ -156,40 +157,27 @@ def nn_train(train_set,train_label,test_set,test_label):
 
     summary_writer.close()
 
-
+#距离平均误差
+def mean_dist_error(output_layer):
+    '''
+    output_layer:神经网络的输出层,尚未经过softmax处理
+    rp_id:对应输入的真实的rp_id
+    '''
+    probabilies = tf.nn.softmax(output_layer)
+    print(probabilies)
 
 def main(_):
-    '''step 0: load original train_set,train_label and original test_set, test_label'''
-    trainingApFingerprints = np.load('./Data/trainingApFingerprints.npy')         #train set
-    trainingCoordinatesId = np.load('./Data/trainingCoordinatesId.npy')           #train label,one-hot vector
-    trainingCoordinatesId = np.argmax(trainingCoordinatesId,axis=1)               #train label, array
-    testingApFingerprints = np.load('./Data/testingApFingerprints.npy')           #test set
-    testingCoordinatesId = np.load('./Data/testingCoordinatesId.npy')             #test label,one-hot vector
-    testingCoordinatesId = np.argmax(testingCoordinatesId,axis=1)                 #test label, array
-    coordinatesList = np.load('./Data/coordinatesList.npy')
+    '''step 0: load train_set,train_label and test_set, test_label for each cluster'''
+    train_fgprts_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/train_fingerprints_1.npy')  #train set for cluster, after PCA reduction  
+    train_rp_ids_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/train_rp_ids_1.npy')        #rp coordinate id in train set
+    test_fgprts_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/test_fingerprints_1.npy')    #test set for cluster, after PCA reduction
+    test_rp_ids_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/test_rp_ids_1.npy')          #rp coordinate if in test set
+    coord_list = np.load('./Data/coordinatesList.npy')                                       #global coordinatesList for all fingerprints
+    local_coord_list = np.load('./Data_Statistics/Rp_Cluster_Relation/cluster_1.npy')        #local coordinateList for this cluster
 
-    '''step 1: PCA feature reduction and then KMeans'''
-    '''step 1.1: PCA feature reduction'''
-    from sklearn.decomposition import PCA
-    pca = PCA() #PCA feature reduction
-    pca_tsfm_trainingApFingerprints = pca.fit(trainingApFingerprints).transform(trainingApFingerprints)
-    pca_tsfm_testingApFingerprints = pca.transform(testingApFingerprints)
-    #print ('PCA explained variance ratio: %s' % str(pca.explained_variance_ratio_))
-    #cum_ratio = np.cumsum(pca.explained_variance_ratio_)/np.sum(pca.explained_variance_ratio_)
-    #print (np.where(cum_ratio>=0.95))
-    '''step 1.2: KMeans'''
-    from sklearn.cluster import KMeans
-    pca_kmeans = KMeans(n_clusters=15).fit(pca_tsfm_trainingApFingerprints) #KMeans
-    pca_predict_labels = pca_kmeans.predict(pca_tsfm_testingApFingerprints)
-    train_cluster_labels = dataToOne_hotVector(pca_kmeans.labels_,trainingApFingerprints.shape[0],15)
-    test_cluster_labels = dataToOne_hotVector(pca_predict_labels,testingApFingerprints.shape[0],15)
-    print ('**********先使用PCA降维，再进行KMeans')
-
-
-    '''step 1.3: Analyse the cluster each RP belongs to, and the set of RPs each cluster consist of'''
-    data_helper.cluster_anls(pca_kmeans.labels_,pca_tsfm_trainingApFingerprints,trainingCoordinatesId,coordinatesList)
+    '''step 1: transform the r'''
     '''step 2: train neural network and test'''
-    #nn_train(pca_tsfm_trainingApFingerprints,train_cluster_labels,pca_tsfm_testingApFingerprints,test_cluster_labels)
+    #nn_train()
 
 
 if __name__ == '__main__':
