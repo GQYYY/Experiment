@@ -26,8 +26,8 @@ def train_data_to_one_hot_vector(train_rp_ids):
     row = train_rp_ids.size
     col = rp_id_set.size
     hotVectors = np.zeros([row,col])
-    for i,id in enumerate(train_rp_ids.tolist()):
-        hotVectors[i,np.where(rp_id_set == id)] = 1.0
+    for i,rp_id in enumerate(train_rp_ids.tolist()):
+        hotVectors[i,np.where(rp_id_set == rp_id)] = 1.0
     return hotVectors
 
 def nn_layer(inputs, input_dim, output_dim, layer_n=None,activate=None,keep_prob=1.0,name='hidden_layer'):
