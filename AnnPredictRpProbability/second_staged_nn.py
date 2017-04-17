@@ -8,15 +8,6 @@ import data_helper
 import sys
 import json
 
-# store original data 
-class DataHolder:
-    def __init__(self,global_train_set,global_train_label,global_test_set,global_test_label):
-        self.global_train_set_ = global_train_set
-        self.global_train_label_ = global_train_label
-        self.global_test_set_ = global_test_set
-        self.global_test_label_ = global_test_label
-
-
 L1_loss = 0.0 #L1正则项
 L2_loss = 0.0 #L2正则项
 
@@ -110,6 +101,15 @@ def nn_train(train_set,train_label,test_set):
         #tf.scalar_summary('accuracy',accuracy)  #for tensorflo w < 0.12
         tf.summary.scalar('accuracy',accuracy)  #for tensorflow >= 0.12
 
+    #距离平均误差
+    def mean_dist_err(input_,rp_coord_ids):
+    '''
+    rp_coord_ids:对应输入的真实的rp_id
+    '''
+        probabilies = tf.nn.softmax(output_layer)
+        sorted_probabilities =
+
+
     #将代码中定义的所有日志生成操作都执行一次
     merged = tf.merge_all_summaries()
     with tf.Session() as sess:
@@ -127,7 +127,7 @@ def nn_train(train_set,train_label,test_set):
                 x,y = batch
                 summary , _ = sess.run([merged,optimizer], feed_dict={input_: x, label_: y,keep_prob:params['keep_prob']})
                 #将所有日志写入文件，TensorBoard即可拿到这次运行所对应的运行信息
-                summary_writer.add_summary(summary,epoch)
+                #summary_writer.add_summary(summary,epoch)
 
             print ('')
             print ('*'*30)
@@ -139,8 +139,8 @@ def nn_train(train_set,train_label,test_set):
             #进行测试
             print ('epoch', epoch+1, 'loss:', sess.run(cross_entropy, feed_dict = {input_:train_set,label_:train_label,keep_prob:1.0}))
             print ('epoch', epoch+1, 'train accuracy:', sess.run(accuracy, feed_dict = {input_:train_set,label_:train_label,keep_prob:1.0}))
-            print ('epoch', epoch+1, 'train mean dist error:',sess.run(mean_dist_error(output_layer),feed_dict={input_:train_set,keep_prob:1.0}))
-            print ('epoch', epoch+1, 'test mean dist error:', sess.run(mean_dist_error(output_layer),feed_dict = {input_:test_set,keep_prob:1.0}))
+            print ('epoch', epoch+1, 'train mean dist error:',mean_dist_err())
+            #print ('epoch', epoch+1, 'test mean dist error:', sess.run(mean_dist_error(output_layer),feed_dict = {input_:test_set,keep_prob:1.0}))
             print ('*'*30)
             print ('')
 
@@ -160,18 +160,9 @@ def nn_train(train_set,train_label,test_set):
 
     summary_writer.close()
 
-#距离平均误差
-def mean_dist_error(output_layer):
-    '''
-    output_layer:神经网络的输出层,尚未经过softmax处理
-    rp_id:对应输入的真实的rp_id
-    '''
-    probabilies = tf.nn.softmax(output_layer)
-    print(probabilies)
-
 def main(_):
     '''step 0: load train_set,train_label and test_set, test_label for each cluster'''
-    train_fgprts_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/train_fingerprints_1.npy')  #train set for cluster, after PCA reduction  
+    train_fgprts_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/train_fingerprints_1.npy')  #train set for cluster, after PCA reduction
     train_rp_ids_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/train_rp_ids_1.npy')        #rp coordinate id in train set
     test_fgprts_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/test_fingerprints_1.npy')    #test set for cluster, after PCA reduction
     test_rp_ids_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/test_rp_ids_1.npy')          #rp coordinate if in test set
@@ -180,6 +171,7 @@ def main(_):
 
     '''step 1: transform the train_rp_ids to one-hot vectors for nn training'''
     train_label = train_data_to_one_hot_vector(train_rp_ids_1)
+    print ('train_label.shape:',train_label.shape)
 
     '''step 2: train neural network and test'''
     nn_train(train_fgprts_1,train_label,test_fgprts_1)
