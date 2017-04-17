@@ -21,10 +21,13 @@ L1_loss = 0.0 #L1正则项
 L2_loss = 0.0 #L2正则项
 
 #transform _label to one-hot vector
-def dataToOne_hotVector(_label,row,col):
+def train_data_to_one_hot_vector(train_rp_ids):
+    rp_id_set = np.unique(train_rp_ids)
+    row = train_rp_ids.size
+    col = rp_id_set.size
     hotVectors = np.zeros([row,col])
-    for i,label in enumerate(_label.tolist()):
-        hotVectors[i,int(label)] = 1.0
+    for i,id in enumerate(train_rp_ids.tolist()):
+        hotVectors[i,np.where(rp_id_set == id)] = 1.0
     return hotVectors
 
 def nn_layer(inputs, input_dim, output_dim, layer_n=None,activate=None,keep_prob=1.0,name='hidden_layer'):
@@ -60,7 +63,7 @@ def nn_layer(inputs, input_dim, output_dim, layer_n=None,activate=None,keep_prob
         L2_loss += tf.nn.l2_loss(biases)
     return outputs
 
-def nn_train(train_set,train_label,test_set,test_label):
+def nn_train(train_set,train_label,test_set):
 
     '''train step 0: load train_set,train_label,test_set,test_label and parameters '''
     parameter_file = sys.argv[1]
@@ -136,8 +139,8 @@ def nn_train(train_set,train_label,test_set,test_label):
             #进行测试
             print ('epoch', epoch+1, 'loss:', sess.run(cross_entropy, feed_dict = {input_:train_set,label_:train_label,keep_prob:1.0}))
             print ('epoch', epoch+1, 'train accuracy:', sess.run(accuracy, feed_dict = {input_:train_set,label_:train_label,keep_prob:1.0}))
-            print ('epoch', epoch+1, 'train mean dist error:',sess.run(mean_dist_error(output_layer),feed_dict={input_:train_set,label_:train_label,keep_prob:1.0}))
-            print ('epoch', epoch+1, 'test mean dist error:', sess.run(mean_dist_error(output_layer),feed_dict = {input_:test_set,label_:test_label,keep_prob:1.0}))
+            print ('epoch', epoch+1, 'train mean dist error:',sess.run(mean_dist_error(output_layer),feed_dict={input_:train_set,keep_prob:1.0}))
+            print ('epoch', epoch+1, 'test mean dist error:', sess.run(mean_dist_error(output_layer),feed_dict = {input_:test_set,keep_prob:1.0}))
             print ('*'*30)
             print ('')
 
@@ -145,7 +148,7 @@ def nn_train(train_set,train_label,test_set,test_label):
         print ('*' *60)
         print ('Training finish! Cost time:', int(end_time-start_time) , 'seconds')
         print ('Training accuracy:',sess.run(accuracy, feed_dict = {input_:train_set,label_:train_label,keep_prob:1.0}))
-        print ('Testing accuracy:', sess.run(accuracy, feed_dict = {input_:test_set,label_:test_label,keep_prob:1.0}))
+        #print ('Testing accuracy:', sess.run(accuracy, feed_dict = {input_:test_set,label_:test_label,keep_prob:1.0}))
         print ('input dimension:',train_set.shape[1])
         print ('hidden dimension:',hidden_dims)
         print ('output dimension:',train_label.shape[1])
@@ -175,9 +178,11 @@ def main(_):
     coord_list = np.load('./Data/coordinatesList.npy')                                       #global coordinatesList for all fingerprints
     local_coord_list = np.load('./Data_Statistics/Rp_Cluster_Relation/cluster_1.npy')        #local coordinateList for this cluster
 
-    '''step 1: transform the r'''
+    '''step 1: transform the train_rp_ids to one-hot vectors for nn training'''
+    train_label = train_data_to_one_hot_vector(train_rp_ids_1)
+
     '''step 2: train neural network and test'''
-    #nn_train()
+    nn_train(train_fgprts_1,train_label,test_fgprts_1)
 
 
 if __name__ == '__main__':
