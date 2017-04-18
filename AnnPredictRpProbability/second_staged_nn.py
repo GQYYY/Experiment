@@ -12,8 +12,7 @@ L1_loss = 0.0 #L1正则项
 L2_loss = 0.0 #L2正则项
 
 #transform _label to one-hot vector
-def train_data_to_one_hot_vector(train_rp_ids):
-    rp_id_set = np.unique(train_rp_ids)
+def train_data_to_one_hot_vector(train_rp_ids,rp_id_set):
     row = train_rp_ids.size
     col = rp_id_set.size
     hotVectors = np.zeros([row,col])
@@ -98,16 +97,24 @@ def nn_train(train_set,train_label,test_set):
             correct_prediction = tf.equal(tf.argmax(output_layer, 1), tf.argmax(label_, 1))
         with tf.name_scope('accuracy'):
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-        #tf.scalar_summary('accuracy',accuracy)  #for tensorflo w < 0.12
+        #tf.scalar_summary('accuracy',accuracy)  #for tensorflow < 0.12
         tf.summary.scalar('accuracy',accuracy)  #for tensorflow >= 0.12
 
     #距离平均误差
-    def mean_dist_err(input_,rp_coord_ids):
+    def mean_dist_err(session,input_,rp_coord_ids):
     '''
     rp_coord_ids:对应输入的真实的rp_id
     '''
         probabilies = tf.nn.softmax(output_layer)
-        sorted_probabilities =
+        sorted_probs =
+
+        prob_sum = np.cum_sum(top_probs)
+        weights = [prb/prbsum for prob in top_probs]
+        rp_coords = coord_list[indices]
+        est_x = np.asarray([rp_coord[0] for rp_coord in rp_coords])
+        est_y = np.asarray([rp_coord[1] for rp_coord in rp_coords])
+        real_x = coord_list[]
+        mean_dist err =
 
 
     #将代码中定义的所有日志生成操作都执行一次
@@ -167,11 +174,11 @@ def main(_):
     test_fgprts_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/test_fingerprints_1.npy')    #test set for cluster, after PCA reduction
     test_rp_ids_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/test_rp_ids_1.npy')          #rp coordinate if in test set
     coord_list = np.load('./Data/coordinatesList.npy')                                       #global coordinatesList for all fingerprints
-    local_coord_list = np.load('./Data_Statistics/Rp_Cluster_Relation/cluster_1.npy')        #local coordinateList for this cluster
+    local_rp_id_set = np.unique(train_rp_ids_1)                                              #local coordinateList for this cluster
 
     '''step 1: transform the train_rp_ids to one-hot vectors for nn training'''
-    train_label = train_data_to_one_hot_vector(train_rp_ids_1)
-    print ('train_label.shape:',train_label.shape)
+    train_label = train_data_to_one_hot_vector(train_rp_ids_1,local_rp_id_set)
+    #print ('train_label.shape:',train_label.shape)
 
     '''step 2: train neural network and test'''
     nn_train(train_fgprts_1,train_label,test_fgprts_1)
