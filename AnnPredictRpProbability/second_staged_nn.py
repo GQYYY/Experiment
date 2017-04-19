@@ -17,8 +17,8 @@ def train_data_to_one_hot_vector(train_rp_ids,rp_id_set):
     col = rp_id_set.size
     hotVectors = np.zeros([row,col])
     for i,rp_id in enumerate(train_rp_ids.tolist()):
-        hotVectors[i,np.where(rp_id_set == rp_id)] = 1.0
-    return hotVectors
+        one_hot_vectors[i,np.where(rp_id_set == rp_id)] = 1.0
+    return one_hot_vectors
 
 def nn_layer(inputs, input_dim, output_dim, layer_n=None,activate=None,keep_prob=1.0,name='hidden_layer'):
     if layer_n is not None:
@@ -105,12 +105,20 @@ def nn_train(train_set,train_label,test_set):
     '''
     rp_coord_ids:对应输入的真实的rp_id
     '''
-        probabilies = tf.nn.softmax(output_layer)
-        sorted_probs =
+        probs = tf.nn.softmax(output_layer)
+        sorted_probs = tf.nn.top_k(probs,k=tf.shape(probs)[0]).values
+        sorted_probs_indices = tf.nn.top_k(probs,k=tf.shape(probs)[0]).indices
 
-        prob_sum = np.cum_sum(top_probs)
-        weights = [prb/prbsum for prob in top_probs]
-        rp_coords = coord_list[indices]
+        from Auxiliary import probability_filter as pf
+        filtered_probs = pf.prob_filter(sorted_probs,params['filter_threshold'])
+        top_k = filtered_probs[0]+1
+        top_k_prob_sum = filtered_probs[1]
+
+        weights = tf.slice(sorted_probs,[0],[top_k])/top_k_prob_sum
+        global local_rp_id_set
+        global coord_list
+        rp_coords = tf.gather(coord_list,tf.gather(local_rp_id_set,tf.slice(sorted_probs_indices,[0],[top_k]))) #the coordinate of RP used for location estimation
+
         est_x = np.asarray([rp_coord[0] for rp_coord in rp_coords])
         est_y = np.asarray([rp_coord[1] for rp_coord in rp_coords])
         real_x = coord_list[]
@@ -146,6 +154,7 @@ def nn_train(train_set,train_label,test_set):
             #进行测试
             print ('epoch', epoch+1, 'loss:', sess.run(cross_entropy, feed_dict = {input_:train_set,label_:train_label,keep_prob:1.0}))
             print ('epoch', epoch+1, 'train accuracy:', sess.run(accuracy, feed_dict = {input_:train_set,label_:train_label,keep_prob:1.0}))
+            x,y =sess.run([],sess.run(accuracy, feed_dict = {input_:train_set,label_:train_label,keep_prob:1.0}))
             print ('epoch', epoch+1, 'train mean dist error:',mean_dist_err())
             #print ('epoch', epoch+1, 'test mean dist error:', sess.run(mean_dist_error(output_layer),feed_dict = {input_:test_set,keep_prob:1.0}))
             print ('*'*30)
