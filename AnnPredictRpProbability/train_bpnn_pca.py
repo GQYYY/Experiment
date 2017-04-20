@@ -171,7 +171,6 @@ def main(_):
     '''step 1.2: KMeans'''
     from sklearn.cluster import KMeans
     pca_tsfm_train_test_fingerpringts = np.concatenate((pca_tsfm_trainingApFingerprints,pca_tsfm_testingApFingerprints),axis=0)
-    train_test_rp_coord_id = np.concatenate((trainingCoordinatesId,testingCoordinatesId))
     pca_kmeans = KMeans(n_clusters=15).fit(pca_tsfm_train_test_fingerpringts) #KMeans
     #pca_kmeans = KMeans(n_clusters=15).fit(pca_tsfm_trainingApFingerprints) #KMeans
     #pca_predict_labels = pca_kmeans.predict(pca_tsfm_testingApFingerprints)
@@ -186,10 +185,10 @@ def main(_):
     for cluster_label in np.unique(pca_kmeans.labels_):
         train_indices = np.where(pca_kmeans.labels_[:trainingApFingerprints.shape[0]] == cluster_label)
         train_fingerprints = pca_tsfm_trainingApFingerprints[train_indices]
-        train_rp_ids = train_test_rp_coord_id[train_indices]
+        train_rp_ids = trainingCoordinatesId[train_indices]
         test_indices = np.where(pca_kmeans.labels_[trainingApFingerprints.shape[0]:] == cluster_label)
         test_fingerprints = pca_tsfm_testingApFingerprints[test_indices]
-        test_rp_ids = train_test_rp_coord_id[test_indices]
+        test_rp_ids = testingCoordinatesId[test_indices]
         np.save('./Data_Statistics/Fgprt_Rp4Cluster/train_fingerprints_%d'%cluster_label,train_fingerprints)
         np.save('./Data_Statistics/Fgprt_Rp4Cluster/train_rp_ids_%d'%cluster_label,train_rp_ids)
         np.save('./Data_Statistics/Fgprt_Rp4Cluster/test_fingerprints_%d'%cluster_label,test_fingerprints)

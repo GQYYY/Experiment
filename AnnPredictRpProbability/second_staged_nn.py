@@ -15,7 +15,7 @@ L2_loss = 0.0 #L2正则项
 def train_data_to_one_hot_vector(train_rp_ids,rp_id_set):
     row = train_rp_ids.size
     col = rp_id_set.size
-    hotVectors = np.zeros([row,col])
+    one_hot_vectors = np.zeros([row,col])
     for i,rp_id in enumerate(train_rp_ids.tolist()):
         one_hot_vectors[i,np.where(rp_id_set == rp_id)] = 1.0
     return one_hot_vectors
@@ -53,11 +53,14 @@ def nn_layer(inputs, input_dim, output_dim, layer_n=None,activate=None,keep_prob
         L2_loss += tf.nn.l2_loss(biases)
     return outputs
 
-def nn_train(train_set,train_label,test_set):
+def nn_train(train_set,train_label,train_rp_ids,test_set,test_rp_ids,coord_list,local_rp_id_set):
 
-    '''train step 0: load train_set,train_label,test_set,test_label and parameters '''
+    '''train step 0: load train_set,train_label,test_set,test_label, global coord list, local rp id set of this cluster
+                     and parameters.
+    '''
     parameter_file = sys.argv[1]
     params = json.loads(open(parameter_file).read())
+
     '''train step 1: construct/initialize nn structure '''
     with tf.name_scope('input'):
         input_ = tf.placeholder(tf.float32, [None,train_set.shape[1]])
@@ -100,31 +103,6 @@ def nn_train(train_set,train_label,test_set):
         #tf.scalar_summary('accuracy',accuracy)  #for tensorflow < 0.12
         tf.summary.scalar('accuracy',accuracy)  #for tensorflow >= 0.12
 
-    #距离平均误差
-    def mean_dist_err(session,input_,rp_coord_ids):
-    '''
-    rp_coord_ids:对应输入的真实的rp_id
-    '''
-        probs = tf.nn.softmax(output_layer)
-        sorted_probs = tf.nn.top_k(probs,k=tf.shape(probs)[0]).values
-        sorted_probs_indices = tf.nn.top_k(probs,k=tf.shape(probs)[0]).indices
-
-        from Auxiliary import probability_filter as pf
-        filtered_probs = pf.prob_filter(sorted_probs,params['filter_threshold'])
-        top_k = filtered_probs[0]+1
-        top_k_prob_sum = filtered_probs[1]
-
-        weights = tf.slice(sorted_probs,[0],[top_k])/top_k_prob_sum
-        global local_rp_id_set
-        global coord_list
-        rp_coords = tf.gather(coord_list,tf.gather(local_rp_id_set,tf.slice(sorted_probs_indices,[0],[top_k]))) #the coordinate of RP used for location estimation
-
-        est_x = np.asarray([rp_coord[0] for rp_coord in rp_coords])
-        est_y = np.asarray([rp_coord[1] for rp_coord in rp_coords])
-        real_x = coord_list[]
-        mean_dist err =
-
-
     #将代码中定义的所有日志生成操作都执行一次
     merged = tf.merge_all_summaries()
     with tf.Session() as sess:
@@ -152,19 +130,26 @@ def nn_train(train_set,train_label,test_set):
             print (sess.run(tf.argmax(label_,1),feed_dict={label_:train_label})[:50])
 
             #进行测试
-            print ('epoch', epoch+1, 'loss:', sess.run(cross_entropy, feed_dict = {input_:train_set,label_:train_label,keep_prob:1.0}))
-            print ('epoch', epoch+1, 'train accuracy:', sess.run(accuracy, feed_dict = {input_:train_set,label_:train_label,keep_prob:1.0}))
-            x,y =sess.run([],sess.run(accuracy, feed_dict = {input_:train_set,label_:train_label,keep_prob:1.0}))
-            print ('epoch', epoch+1, 'train mean dist error:',mean_dist_err())
-            #print ('epoch', epoch+1, 'test mean dist error:', sess.run(mean_dist_error(output_layer),feed_dict = {input_:test_set,keep_prob:1.0}))
+            loss_,train_accuracy_,train_output = sess.run([cross_entropy,accuracy,tf.nn.softmax(output_layer)],\
+                                                         feed_dict = {input_:train_set,label_:train_label,keep_prob:1.0})
+            train_mean_dist_err = estimate_result(train_output,train_rp_ids,params['threshold'],coord_list,local_rp_id_set)[0]
+            test_output = sess.run(tf.nn.softmax(output_layer),feed_dict={input_:test_set,keep_prob:1.0})
+            test_mean_dist_err = estimate_result(test_output,test_rp_ids,params['threshold'],coord_list,local_rp_id_set)[0]
+
+            print ('epoch', epoch+1, 'loss:', loss_)
+            print ('epoch', epoch+1, 'train accuracy:', train_accuracy_)
+            print ('epoch', epoch+1, 'train mean dist error:',train_mean_dist_err)
+            print ('epoch', epoch+1, 'test mean dist error:', test_mean_dist_err)
             print ('*'*30)
             print ('')
 
         end_time = time.time()
+        test_output = sess.run(tf.nn.softmax(output_layer),feed_dict={input_:test_set,keep_prob:1.0})
+        test_mean_dist_err,est_coords,real_coords = estimate_result(test_output,test_rp_ids,params['threshold'],coord_list,local_rp_id_set)
         print ('*' *60)
         print ('Training finish! Cost time:', int(end_time-start_time) , 'seconds')
         print ('Training accuracy:',sess.run(accuracy, feed_dict = {input_:train_set,label_:train_label,keep_prob:1.0}))
-        #print ('Testing accuracy:', sess.run(accuracy, feed_dict = {input_:test_set,label_:test_label,keep_prob:1.0}))
+        print ('Testing mean dist error:', test_mean_dist_err)
         print ('input dimension:',train_set.shape[1])
         print ('hidden dimension:',hidden_dims)
         print ('output dimension:',train_label.shape[1])
@@ -173,8 +158,50 @@ def nn_train(train_set,train_label,test_set):
         print ('lambda_l1:',params['lambda_l1'])
         print ('lambda_l2:',params['lambda_l2'])
         print ('batch_size:',params['batch_size'])
+        print ('cumulative probability threshold:',params['threshold'])
+        print ('real coordinates vs estmated coordinates:')
+        for i in range(real_coords.shape[0]):
+            print(np.round(real_coords[i],2),'  ',np.round(est_coords[i],2))
 
-    summary_writer.close()
+def estimate_result(original_probs,rp_coord_id,threshold,coord_list,local_rp_id_set):
+    '''
+    original_probs:神经网络输出的概率向量
+    rp_coord_id:真实的位置坐标在coord_list中对应的索引向量
+    threshold:累积概率的阈值
+    coord_list:全局的所有RP的坐标向量
+    local_rp_id_set:该cluster中出现的所有RP的坐标在coord_list中的索引的向量
+    '''
+    sorted_probs = np.sort(original_probs,axis=1)[:,::-1]
+    sorted_probs_indices = np.argsort(original_probs,axis=1)[:,::-1]
+    #print(sorted_probs)
+    top_k = np.asarray([np.where(np.cumsum(sorted_probs[i]) >= threshold)[0][0] for i in range(sorted_probs.shape[0])])+1
+    #print(top_k)
+    rp_coord_in_use = []      #参与预测位置计算的rp坐标
+    weights = []              #各坐标对应的权重
+    for probs_,indices_,top_k_ in zip(sorted_probs,sorted_probs_indices,top_k):
+        top_k_probs = probs_[:top_k_]
+        top_k_indices = indices_[:top_k_]
+        rp_coord_in_use.append(coord_list[local_rp_id_set[top_k_indices]])
+        weights.append(top_k_probs/np.sum(top_k_probs))
+    rp_coord_in_use = np.array(rp_coord_in_use)
+    weights = np.array(weights)
+    #print(weights)
+    #print(weights.shape)
+    est_coord = []
+    for rp_coords_, weights_ in zip(rp_coord_in_use,weights):
+        rp_x = rp_coords_[:,0]
+        rp_y = rp_coords_[:,1]
+        est_x = np.sum(rp_x*weights_)
+        est_y = np.sum(rp_y*weights_)
+        est_coord.append([est_x,est_y])
+    est_coord = np.array(est_coord)      #预测的位置坐标
+
+    real_coord = coord_list[rp_coord_id] #真实的位置坐标
+    mean_dist_err = np.mean(np.sqrt(np.sum(np.square(est_coord-real_coord),axis=1))) #平均误差
+
+    return mean_dist_err,est_coord, real_coord
+
+
 
 def main(_):
     '''step 0: load train_set,train_label and test_set, test_label for each cluster'''
@@ -185,15 +212,14 @@ def main(_):
     coord_list = np.load('./Data/coordinatesList.npy')                                       #global coordinatesList for all fingerprints
     local_rp_id_set = np.unique(train_rp_ids_1)                                              #local coordinateList for this cluster
 
+
     '''step 1: transform the train_rp_ids to one-hot vectors for nn training'''
     train_label = train_data_to_one_hot_vector(train_rp_ids_1,local_rp_id_set)
-    #print ('train_label.shape:',train_label.shape)
 
     '''step 2: train neural network and test'''
-    nn_train(train_fgprts_1,train_label,test_fgprts_1)
+    nn_train(train_fgprts_1,train_label,train_rp_ids_1,test_fgprts_1,test_rp_ids_1,coord_list,local_rp_id_set)
 
 
 if __name__ == '__main__':
-    #python3 train_bpnn_pca.py ./parameters.json
-
+    #python3 second_staged_nn.py ./second_parameters.json
     tf.app.run()
