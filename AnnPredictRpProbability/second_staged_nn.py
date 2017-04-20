@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 
+from __future__ import division
 import numpy as np
 import tensorflow as tf
 import time
@@ -173,9 +174,11 @@ def estimate_result(original_probs,rp_coord_id,threshold,coord_list,local_rp_id_
     '''
     sorted_probs = np.sort(original_probs,axis=1)[:,::-1]
     sorted_probs_indices = np.argsort(original_probs,axis=1)[:,::-1]
-    #print(sorted_probs)
-    top_k = np.asarray([np.where(np.cumsum(sorted_probs[i]) >= threshold)[0][0] for i in range(sorted_probs.shape[0])])+1
-    #print(top_k)
+    print(sorted_probs)
+    print(sorted_probs.dtype)
+    top_k = np.asarray([np.where(np.round(np.cumsum(sorted_probs[i]),3) >= threshold)[0][0] for i in range(sorted_probs.shape[0])])+1
+    print('**************************')
+    print(top_k[:50])
     rp_coord_in_use = []      #参与预测位置计算的rp坐标
     weights = []              #各坐标对应的权重
     for probs_,indices_,top_k_ in zip(sorted_probs,sorted_probs_indices,top_k):
@@ -185,8 +188,8 @@ def estimate_result(original_probs,rp_coord_id,threshold,coord_list,local_rp_id_
         weights.append(top_k_probs/np.sum(top_k_probs))
     rp_coord_in_use = np.array(rp_coord_in_use)
     weights = np.array(weights)
-    #print(weights)
-    #print(weights.shape)
+    print('------------------------------weights')
+    print (weights[:50])
     est_coord = []
     for rp_coords_, weights_ in zip(rp_coord_in_use,weights):
         rp_x = rp_coords_[:,0]

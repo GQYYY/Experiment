@@ -179,7 +179,7 @@ def main(_):
     print ('**********先使用PCA降维，再进行KMeans')
 
     '''step 1.3: Analyse the cluster each RP belongs to, and the set of RPs each cluster consist of'''
-    #data_helper.cluster_anls(pca_kmeans.labels_,pca_tsfm_trainingApFingerprints,trainingCoordinatesId,coordinatesList)
+    data_helper.cluster_anls(pca_kmeans.labels_[:trainingApFingerprints.shape[0]],pca_tsfm_trainingApFingerprints,trainingCoordinatesId,coordinatesList)
 
     '''step 1.4: Separate corresponding fingerprints and rp_id for each cluster label'''
     for cluster_label in np.unique(pca_kmeans.labels_):

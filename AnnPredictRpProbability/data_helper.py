@@ -63,7 +63,7 @@ def cluster_anls(cluster_labels,fingerprints,coords_id,coords_list):
             sheet2.write(end,1,str(coord_set[j]))
         sheet2.write_merge(start,end,0,0,str(clst_label))
         start = end+1
-    workbook.save('./Data_Statistics/rp_cluster_analysis.xls')
+    workbook.save('./Data_Statistics/Rp_Cluster_Relation/rp_cluster_analysis.xls')
     print ('统计信息生成完毕！')
 
 
