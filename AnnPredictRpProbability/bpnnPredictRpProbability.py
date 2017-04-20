@@ -198,7 +198,31 @@ if __name__ == '__main__':
     print ('保存完毕')
     '''
 
+    dataProcessor = dp.dataProcessor(r'data4trainingNexus',r'bai4testing_1_4.log')
+    trainingApFingerprints = dataProcessor.getTrainingApFingerprints()
+    trainingCoordinatesId = dataProcessor.getTrainingCoordinatesId()
 
+    originalTrainingApFingerprints = dataProcessor.getOriginalTrainingApFingerprints()
+    originalTrainingCoordinatesId = dataProcessor.getOriginalTrainingCoordinatesId()
+
+    testingApFingerprints = dataProcessor.getTestingApFingerprints()
+    testingCoordinatesId = dataProcessor.getTestingCoordinatesId()
+
+    originalTestingApFingerprints = dataProcessor.getOriginalTestingApFingerprints()
+    originalTestingCoordinatesId = dataProcessor.getOriginalTestingCoordinatesId()
+
+
+    np.save('./Data/Original/trainingApFingerprints',trainingApFingerprints)
+    np.save('./Data/Original/trainingCoordinatesId',trainingCoordinatesId)
+    np.save('./Data/Original/originalTrainingApFingerprints',originalTrainingApFingerprints)
+    np.save('./Data/Original/originalTrainingCoordinatesId',originalTrainingCoordinatesId)
+    np.save('./Data/Original/testingApFingerprints',testingApFingerprints)
+    np.save('./Data/Original/testingCoordinatesId',testingCoordinatesId)
+    np.save('./Data/Original/originalTestingApFingerprints',originalTestingApFingerprints)
+    np.save('./Data/Original/originalTestingCoordinatesId',originalTestingCoordinatesId)
+    print('保存完毕！')
+
+    '''
     #载入数据
     trainingApFingerprints = np.load('./Data/trainingApFingerprints.npy')
     trainingCoordinatesId = np.load('./Data/trainingCoordinatesId.npy') #one-hot vector
@@ -276,3 +300,4 @@ if __name__ == '__main__':
     nn.setup(pca_tsfm_trainingApFingerprints.shape[1],[400],trainingCoordinatesId.shape[1])
 
     nn.trainAndTest()
+    '''

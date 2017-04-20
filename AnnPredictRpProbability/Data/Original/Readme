@@ -1,0 +1,21 @@
+说明:
+
+apList.npy:训练集和测试集中所有出现的AP的有序列表(ndarray)，shape=(92,)
+rpCoordinatesList.npy:训练集和测试集中所有出现的RP坐标的有序列表(ndarray),shape=(145,)
+
+originalTrainingApFingerprints.npy: 训练集的Wi-Fi RSS指纹,未经过shuffle,shape=(12400,92)
+originalTrainingCoordinates.npy:训练集每条指纹对应的RP的位置坐标,shape=(12400,2)
+originalTrainingCoordinatesId.npy:上述坐标在rpCoordinatesList中对应的索引,shape=(12400,)
+
+originalTestingApFingerprints.npy:测试集的Wi-Fi RSS指纹，未经过shuffle,shape=(2100,92)
+originalTestingCoordinates.npy:测试集中每条指纹对应的RP的位置坐标,shape=(2100,2)
+originalTestingCoordinatesId.npy:上述坐标在rpCoordinatesList中对应的索引,shape=(2100,)
+
+trainingApFinerprints.npy:训练集的Wi-Fi RSS指纹，但经过shuffle,shape=(12400,92)
+trainingCoordinates.npy:上述经过shuffle的训练集中每条指纹对应的RP的位置坐标,shape=(12400,2)
+trainingCoordinatesId.npy:上述坐标在rpCoordinatesList中对应的索引,shape=(12400,)
+
+testingApFingerprints.npy:测试集的WiFi RSS指纹，但经过shuffle,shape=(2100,92)
+testingCoordinates.npy:上述经过shuffle的测试集中每条指纹对应的RP的位置坐标,shape=(2100,2)
+testingCoordinatesId.npy:上述坐标在rpCoordinatesList中对应的索引,shape=(2100,)
+

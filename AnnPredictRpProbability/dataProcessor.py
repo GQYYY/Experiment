@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding=utf-8
 import numpy as np
-import random
 
 class dataProcessor:
 
@@ -13,10 +12,12 @@ class dataProcessor:
         #self.path = r'/Users/tmac/Desktop/AnnPredictRpProbability/Data/'
         self.path = r'/home/gqy/Desktop/Experiment/AnnPredictRpProbability/Data/'
         self.apList = self.__getApList() #所有出现的AP的列表，即特征列表
+        self.coordList = self.__getCoordinatesList() #训练集和测试集中所有出现的RP的位置坐标列表
         self.traningApFingerprints,self.trainingCoordinates = self.__getApFingerprintsAndCoordinates(self.trainingFile)
         self.testingApFingerprints,self.testingCoordinates = self.__getApFingerprintsAndCoordinates(self.testingFile)
         self.originalTrainingApFingerprints,self.originalTrainingCoordinates = self.__getApFingerprintsAndCoordinates(self.trainingFile,isShuffle=False)
         self.originalTestingApFingerprints,self.originalTestingCoordinates = self.__getApFingerprintsAndCoordinates(self.testingFile,isShuffle=False)
+
         '''
         返回指纹数据的基本信息apRssiInfoWithCorresponing_Coordinates，
         格式如下包括多个位置（如果是训练集数据，则每个位置包含100组数据）
@@ -66,7 +67,6 @@ class dataProcessor:
                 fingerprint = []
         f.close()
         
-        #return np.load("apRssiInfoWithCorresponing_Coordinates.npy").tolist()
         apRssiInfoWithCorresponing_Coordinates = np.array(apRssiInfoWithCorresponing_Coordinates)
         if isShuffle:
             #将原始数据打乱顺序，以便后续的训练
@@ -102,8 +102,6 @@ class dataProcessor:
                     yAxis = line[7:-1]
                     CoordinatesSet = CoordinatesSet | set([(float(xAxis),float(yAxis))])
             f.close()
-        #print len(list(CoordinatesSet))
-        #print list(CoordinatesSet)
         return list(CoordinatesSet)
 
     '''
@@ -119,41 +117,9 @@ class dataProcessor:
             correspondingCoordinates.append(np.array(fingerprint[1]))
         return apFingerprints,correspondingCoordinates
 
-    #数据的归一化函数min-max normalization和z-score normalization
-    #type参数可选'min-max'或'z-score'
-    def __normalization(self,apFingerprints,type='min-max'):
-        normalizedApFingerprints = np.array(apFingerprints)
-        #使用min-max归一化
-        if type == 'min-max':
-            #每个AP的信号强度最大值和最小值
-            max_Rss = np.max(self.traningApFingerprints,axis=0)
-            min_Rss = np.min(self.traningApFingerprints,axis=0)
-            #print '最大Rss为：'
-            #print max_Rss
-            #print '最小Rss为：'
-            #print min_Rss
-            for j in range(np.array(apFingerprints).shape[1]):
-                for i in range(np.array(apFingerprints).shape[0]):
-                    if max_Rss[j]>min_Rss[j]:
-                        normalizedApFingerprints[i,j]=(normalizedApFingerprints[i,j]-min_Rss[j]+0.0)/(max_Rss[j]-min_Rss[j])
-                    else:
-                        normalizedApFingerprints[i,j] = 0.0
-        #使用z-score归一化
-        elif type == 'z-score':
-            #每个AP的信号强度均值和标准差
-            mean_Rss = np.mean(self.traningApFingerprints,axis=0)
-            std_Rss =np.std(self.traningApFingerprints,axis=0)
-            for j in range(apFingerprints.shape[1]):
-                for i in range(apFingerprints.shape[0]):
-                    normalizedApFingerprints[i,j]=(normalizedApFingerprints[i,j]-mean_Rss[j]+0.0)/std_Rss[j]
-        return normalizedApFingerprints
-
-
-
     #获取训练数据中的AP的RSS指纹
     def getTrainingApFingerprints(self):
         return np.array(self.traningApFingerprints)
-        #return self.__normalization(self.traningApFingerprints)
     #获取训练数据中的指纹对应的RP的位置坐标
     def getTrainingCoordinates(self):
         return np.array(self.trainingCoordinates)
@@ -165,81 +131,71 @@ class dataProcessor:
     def getTestingCoordinates(self):
         return np.array(self.testingCoordinates)
 
-    #获取训练数据中的指纹对应的RP的位置坐标的编号所构成的列表
-    def getTrainingCoordinatesId(self):
-        coordinatesList = self.__getCoordinatesList()
-        trainingCoordinatesId = np.zeros([len(self.trainingCoordinates),len(coordinatesList)])
-        for i,coordinate in  enumerate(self.trainingCoordinates):
-            coordinate = tuple(coordinate)
-            j = coordinatesList.index(coordinate)
-            trainingCoordinatesId[i,j] = 1.0
-        return trainingCoordinatesId
+    #获取原始(未经shuffle)训练数据中的AP的RSS指纹
+    def getOriginalTrainingApFingerprints(self):
+        return np.array(self.originalTrainingApFingerprints)
+    #获取原始训练数据中的指纹对应的RP位置坐标
+    def getOriginalTrainingCoordinates(self):
+        return np.array(self.originalTrainingCoordinates)
+    #获取原始(未经shuff)测试数据中的AP的RSS指纹
+    def getOriginalTestingApFingerprints(self):
+        return np.array(self.originalTestingApFingerprints)
+    #获取原始测试数据中的RP的真是坐标位置
+    def getOriginalTestingCoordinates(self):
+        return np.array(self.originalTestingCoordinates)
 
-    #获取测试数据中的指纹对应的RP的位置坐标的编号所构成的矩阵．矩阵的每一行都是一个one-hot vector
-    def getTestingCoordinatesId(self):
-        coordinatesList = self.__getCoordinatesList()
-        testingCoordinatesId = np.zeros([len(self.testingCoordinates),len(coordinatesList)])
-        for i,coordinate in  enumerate(self.testingCoordinates):
-            coordinate = tuple(coordinate)
-            j = coordinatesList.index(coordinate)
-            testingCoordinatesId[i,j] = 1.0
-        return testingCoordinatesId
+    #获取AP列表
+    def getApList(self):
+        return self.apList
 
-    #获取训练数据中的AP的time averaged指纹和对应的指纹
-    def getTimeAveragedTrainingApFingerprintsAndCoordinates(self):
-        timeAveragedTrainingApFingerprints = []
-        trainingCoordinates = []
+    #获取RP位置坐标列表
+    def getCoordinatesList(self):
+        return self.coordList
 
-        total = np.zeros(len(self.apList))
-        count = 0
-        for index in range(len(self.traningApFingerprints)):
-            total += np.array(self.traningApFingerprints[index])
-            count += 1
-            if (index < (len(self.traningApFingerprints)-1) and self.trainingCoordinates[index] != self.trainingCoordinates[index+1]) or index == (len(self.traningApFingerprints)-1):
-                timeAveragedTrainingApFingerprint = total / count
-                timeAveragedTrainingApFingerprints.append(timeAveragedTrainingApFingerprint.tolist())
-                trainingCoordinates.append(self.trainingCoordinates[index])
-                total = np.zeros(len(self.apList))
-                count = 0
+    #获取数据中的指纹对应的RP的位置坐标的编号所构成的列表
+    def getCoordinatesId(self,coordinates):
+        coordinatesList = self.coordList
+        coordinatesId = []
+        for coord in coordinates:
+            coord = tuple(coord)
+            coordinatesId.append(coordinatesList.index(coord))
+        return np.array(coordinatesId)
 
-        return np.array(timeAveragedTrainingApFingerprints),np.array(trainingCoordinates)
-
-    #随机从测试数据中选择num条数据，用于测试模型的性能
-    #返回随机挑选出的Ap指纹和对应的RP位置坐标
-    def getTestingSamplesRandomly(self,num):
-        testingApFingerprints = []
-        testingCorrespondingCoordinates = []
-        testingRssiInfoWithCorrespondingCoordinates = self.__apRssiInfoWithCorresponing_Coordinates(self.testingFile)
-        #random.shuffle(testingRssiInfoWithCorrespondingCoordinates)
-        for fingerprint in testingRssiInfoWithCorrespondingCoordinates[:num]:
-            testingApFingerprints.append(fingerprint[0])
-            testingCorrespondingCoordinates.append(fingerprint[1])
-
-        return self.__normalization(testingApFingerprints),np.array(testingCorrespondingCoordinates)
 
 if __name__ == '__main__':
-    dp = dataProcessor(r'data4trainingNexus',r'bai4testing_1_4.log')
-    #dp.getTimeAveragedTrainingApFingerprintsAndCoordinates()
-    #dp.getTestingSamplesRandomly(15)
-    #print '原始trainingApFingerprints:'
-    #print dp.traningApFingerprints[:20]
-    #print ' 归一化后的traingingApFingerprints:'
-    #print dp.getTrainingApFingerprints()[:20]
+    dataProcessor = dataProcessor(r'data4trainingNexus',r'bai4testing_1_4.log')
+    trainingApFingerprints = dataProcessor.getTrainingApFingerprints()
+    trainingCoordinates = dataProcessor.getTrainingCoordinates()
+    trainingCoordinatesId = dataProcessor.getCoordinatesId(trainingCoordinates)
 
-    #dp.__getCoordinatesList()
-    train = dp.getTrainingCoordinatesId()
-    #print '*'*30
-    test = dp.getTestingCoordinatesId()
-    print 'train.shape:',train.shape
-    print 'test.shape:',test.shape
-    reply1 = 0
-    reply2 = 0
-    for i in range(train.shape[0]):
-        if 1 in train[i,:] and np.sum(train[i,:])==1:
-            reply1 +=1
-    print 'reply1:',reply1
+    originalTrainingApFingerprints = dataProcessor.getOriginalTrainingApFingerprints()
+    originalTrainingCoordinates = dataProcessor.getOriginalTrainingCoordinates()
+    originalTrainingCoordinatesId = dataProcessor.getCoordinatesId(originalTrainingCoordinates)
 
-    for i in range(test.shape[0]):
-        if 1 in test[i,:] and np.sum(test[i,:])==1:
-            reply2 += 1
-    print 'reply2:',reply2
+    testingApFingerprints = dataProcessor.getTestingApFingerprints()
+    testingCoordinates = dataProcessor.getTestingCoordinates()
+    testingCoordinatesId = dataProcessor.getCoordinatesId(testingCoordinates)
+
+    originalTestingApFingerprints = dataProcessor.getOriginalTestingApFingerprints()
+    originalTestingCoordinates = dataProcessor.getOriginalTestingCoordinates()
+    originalTestingCoordinatesId = dataProcessor.getCoordinatesId(originalTestingCoordinates)
+
+    coordinatesList = dataProcessor.getCoordinatesList()
+    apList = dataProcessor.getApList()
+
+    np.save('./Data/Original/trainingApFingerprints',trainingApFingerprints)
+    np.save('./Data/Original/trainingCoordinates',trainingCoordinates)
+    np.save('./Data/Original/trainingCoordinatesId',trainingCoordinatesId)
+    np.save('./Data/Original/originalTrainingApFingerprints',originalTrainingApFingerprints)
+    np.save('./Data/Original/originalTrainingCoordinates',originalTrainingCoordinates)
+    np.save('./Data/Original/originalTrainingCoordinatesId',originalTrainingCoordinatesId)
+    np.save('./Data/Original/testingApFingerprints',testingApFingerprints)
+    np.save('./Data/Original/testingCoordinates',testingCoordinates)
+    np.save('./Data/Original/testingCoordinatesId',testingCoordinatesId)
+    np.save('./Data/Original/originalTestingApFingerprints',originalTestingApFingerprints)
+    np.save('./Data/Original/originalTestingCoordinates',originalTestingCoordinates)
+    np.save('./Data/Original/originalTestingCoordinatesId',originalTestingCoordinatesId)
+
+    np.save('./Data/Original/rpCoordinatesList',coordinatesList)
+    np.save('./Data/Original/apList',apList)
+    print('保存完毕！')
