@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-from __future__ import division
 import numpy as np
 import tensorflow as tf
 import time
@@ -13,13 +12,11 @@ L1_loss = 0.0 #L1正则项
 L2_loss = 0.0 #L2正则项
 
 #transform _label to one-hot vector
-def train_data_to_one_hot_vector(train_rp_ids,rp_id_set):
-    row = train_rp_ids.size
-    col = rp_id_set.size
-    one_hot_vectors = np.zeros([row,col])
-    for i,rp_id in enumerate(train_rp_ids.tolist()):
-        one_hot_vectors[i,np.where(rp_id_set == rp_id)] = 1.0
-    return one_hot_vectors
+def dataToOne_hotVector(_label,row,col):
+    hotVectors = np.zeros([row,col])
+    for i,label in enumerate(_label.tolist()):
+        hotVectors[i,int(label)] = 1.0
+    return hotVectors
 
 def nn_layer(inputs, input_dim, output_dim, layer_n=None,activate=None,keep_prob=1.0,name='hidden_layer'):
     if layer_n is not None:
@@ -54,14 +51,11 @@ def nn_layer(inputs, input_dim, output_dim, layer_n=None,activate=None,keep_prob
         L2_loss += tf.nn.l2_loss(biases)
     return outputs
 
-def nn_train(train_set,train_label,train_rp_ids,test_set,test_rp_ids,coord_list,local_rp_id_set):
+def nn_train(train_set,train_label,test_set,test_label):
 
-    '''train step 0: load train_set,train_label,test_set,test_label, global coord list, local rp id set of this cluster
-                     and parameters.
-    '''
+    '''train step 0: load train_set,train_label,test_set,test_label and parameters '''
     parameter_file = sys.argv[1]
     params = json.loads(open(parameter_file).read())
-
     '''train step 1: construct/initialize nn structure '''
     with tf.name_scope('input'):
         input_ = tf.placeholder(tf.float32, [None,train_set.shape[1]])
@@ -101,7 +95,7 @@ def nn_train(train_set,train_label,train_rp_ids,test_set,test_rp_ids,coord_list,
             correct_prediction = tf.equal(tf.argmax(output_layer, 1), tf.argmax(label_, 1))
         with tf.name_scope('accuracy'):
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-        #tf.scalar_summary('accuracy',accuracy)  #for tensorflow < 0.12
+        #tf.scalar_summary('accuracy',accuracy)  #for tensorflo w < 0.12
         tf.summary.scalar('accuracy',accuracy)  #for tensorflow >= 0.12
 
     #将代码中定义的所有日志生成操作都执行一次
@@ -121,7 +115,7 @@ def nn_train(train_set,train_label,train_rp_ids,test_set,test_rp_ids,coord_list,
                 x,y = batch
                 summary , _ = sess.run([merged,optimizer], feed_dict={input_: x, label_: y,keep_prob:params['keep_prob']})
                 #将所有日志写入文件，TensorBoard即可拿到这次运行所对应的运行信息
-                #summary_writer.add_summary(summary,epoch)
+                summary_writer.add_summary(summary,epoch)
 
             print ('')
             print ('*'*30)
@@ -131,26 +125,17 @@ def nn_train(train_set,train_label,train_rp_ids,test_set,test_rp_ids,coord_list,
             print (sess.run(tf.argmax(label_,1),feed_dict={label_:train_label})[:50])
 
             #进行测试
-            loss_,train_accuracy_,train_output = sess.run([cross_entropy,accuracy,tf.nn.softmax(output_layer)],\
-                                                         feed_dict = {input_:train_set,label_:train_label,keep_prob:1.0})
-            train_mean_dist_err = estimate_result(train_output,train_rp_ids,params['threshold'],coord_list,local_rp_id_set)[0]
-            test_output = sess.run(tf.nn.softmax(output_layer),feed_dict={input_:test_set,keep_prob:1.0})
-            test_mean_dist_err = estimate_result(test_output,test_rp_ids,params['threshold'],coord_list,local_rp_id_set)[0]
-
-            print ('epoch', epoch+1, 'loss:', loss_)
-            print ('epoch', epoch+1, 'train accuracy:', train_accuracy_)
-            print ('epoch', epoch+1, 'train mean dist error:',train_mean_dist_err)
-            print ('epoch', epoch+1, 'test mean dist error:', test_mean_dist_err)
+            print ('epoch', epoch+1, 'loss:', sess.run(cross_entropy, feed_dict = {input_:train_set,label_:train_label,keep_prob:1.0}))
+            print ('epoch', epoch+1, 'train accuracy:', sess.run(accuracy, feed_dict = {input_:train_set,label_:train_label,keep_prob:1.0}))
+            print ('epoch', epoch+1, 'test accuracy:', sess.run(accuracy,feed_dict = {input_:test_set,label_:test_label,keep_prob:1.0}))
             print ('*'*30)
             print ('')
 
         end_time = time.time()
-        test_output = sess.run(tf.nn.softmax(output_layer),feed_dict={input_:test_set,keep_prob:1.0})
-        test_mean_dist_err,est_coords,real_coords = estimate_result(test_output,test_rp_ids,params['threshold'],coord_list,local_rp_id_set)
         print ('*' *60)
         print ('Training finish! Cost time:', int(end_time-start_time) , 'seconds')
         print ('Training accuracy:',sess.run(accuracy, feed_dict = {input_:train_set,label_:train_label,keep_prob:1.0}))
-        print ('Testing mean dist error:', test_mean_dist_err)
+        print ('Testing accuracy:', sess.run(accuracy, feed_dict = {input_:test_set,label_:test_label,keep_prob:1.0}))
         print ('input dimension:',train_set.shape[1])
         print ('hidden dimension:',hidden_dims)
         print ('output dimension:',train_label.shape[1])
@@ -159,71 +144,56 @@ def nn_train(train_set,train_label,train_rp_ids,test_set,test_rp_ids,coord_list,
         print ('lambda_l1:',params['lambda_l1'])
         print ('lambda_l2:',params['lambda_l2'])
         print ('batch_size:',params['batch_size'])
-        print ('cumulative probability threshold:',params['threshold'])
-        print ('real coordinates vs estmated coordinates:')
-        for i in range(real_coords.shape[0]):
-            print(np.round(real_coords[i],2),'  ',np.round(est_coords[i],2))
 
-def estimate_result(original_probs,rp_coord_id,threshold,coord_list,local_rp_id_set):
-    '''
-    original_probs:神经网络输出的概率向量
-    rp_coord_id:真实的位置坐标在coord_list中对应的索引向量
-    threshold:累积概率的阈值
-    coord_list:全局的所有RP的坐标向量
-    local_rp_id_set:该cluster中出现的所有RP的坐标在coord_list中的索引的向量
-    '''
-    sorted_probs = np.sort(original_probs,axis=1)[:,::-1]
-    sorted_probs_indices = np.argsort(original_probs,axis=1)[:,::-1]
-    top_k = np.asarray([np.where(np.cumsum(np.round(sorted_probs[i],4)) >= threshold)[0][0] for i in range(sorted_probs.shape[0])])+1
-    rp_coord_in_use = []      #参与预测位置计算的rp坐标
-    weights = []              #各坐标对应的权重
-    for probs_,indices_,top_k_ in zip(sorted_probs,sorted_probs_indices,top_k):
-        top_k_probs = probs_[:top_k_]
-        top_k_indices = indices_[:top_k_]
-        rp_coord_in_use.append(coord_list[local_rp_id_set[top_k_indices]])
-        weights.append(top_k_probs/np.sum(top_k_probs))
-    rp_coord_in_use = np.array(rp_coord_in_use)
-    weights = np.array(weights)
-    est_coord = []
-    for rp_coords_, weights_ in zip(rp_coord_in_use,weights):
-        rp_x = rp_coords_[:,0]
-        rp_y = rp_coords_[:,1]
-        est_x = np.sum(rp_x*weights_)
-        est_y = np.sum(rp_y*weights_)
-        est_coord.append([est_x,est_y])
-    est_coord = np.array(est_coord)      #预测的位置坐标
-
-    real_coord = coord_list[rp_coord_id] #真实的位置坐标
-    mean_dist_err = np.mean(np.sqrt(np.sum(np.square(est_coord-real_coord),axis=1))) #平均误差
-
-    return mean_dist_err,est_coord, real_coord
+    summary_writer.close()
 
 
 
 def main(_):
-    '''step 0: load train_set,train_label and test_set, test_label for each cluster'''
-    '''step 0.1:load PCA-transformed data'''
-    #train_fgprts_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/PCA/train_fingerprints_1.npy')  #train set for cluster, after PCA reduction
-    #train_rp_ids_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/PCA/train_rp_ids_1.npy')        #rp coordinate id in train set
-    #test_fgprts_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/PCA/test_fingerprints_1.npy')    #test set for cluster, after PCA reduction
-    #test_rp_ids_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/PCA/test_rp_ids_1.npy')          #rp coordinate if in test set
-    #coord_list = np.load('./Data/Original/rpCoordinatesList.npy')                                #global coordinatesList for all fingerprints
-    #local_rp_id_set = np.unique(train_rp_ids_1)                                                  #local coordinateList for this cluster
-    '''step 0.2:load LDA-transformed data'''
-    train_fgprts_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/LDA/train_fingerprints_1.npy')  #train set for cluster, after LDA reduction
-    train_rp_ids_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/LDA/train_rp_ids_1.npy')        #rp coordinate id in train set
-    test_fgprts_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/LDA/test_fingerprints_1.npy')    #test set for cluster, after LDA reduction
-    test_rp_ids_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/LDA/test_rp_ids_1.npy')          #rp coordinate if in test set
-    coord_list = np.load('./Data/Original/rpCoordinatesList.npy')                               #global coordinatesList for all fingerprints
-    local_rp_id_set = np.unique(train_rp_ids_1)                                                 #local coordinateList for this cluster
+    '''step 0: load original train_set,train_label and original test_set, test_label'''
+    trainingApFingerprints = np.load('./Data/Original/trainingApFingerprints.npy') +100
+    trainingCoordinatesId = np.load('./Data/Original/trainingCoordinatesId.npy')
+    testingApFingerprints = np.load('./Data/Original/testingApFingerprints.npy') +100
+    testingCoordinatesId = np.load('./Data/Original/testingCoordinatesId.npy')
+    coordinatesList = np.load('./Data/Original/rpCoordinatesList.npy')
 
-    '''step 1: transform the train_rp_ids to one-hot vectors for nn training'''
-    train_label = train_data_to_one_hot_vector(train_rp_ids_1,local_rp_id_set)
+    '''step 1: PCA feature reduction and then KMeans'''
+    '''step 1.1: PCA feature reduction'''
+    from sklearn.decomposition import PCA
+    pca = PCA() #PCA feature reduction
+    pca_tsfm_trainingApFingerprints = pca.fit(trainingApFingerprints).transform(trainingApFingerprints)
+    pca_tsfm_testingApFingerprints = pca.transform(testingApFingerprints)
+    #print ('PCA explained variance ratio: %s' % str(pca.explained_variance_ratio_))
+    #cum_ratio = np.cumsum(pca.explained_variance_ratio_)/np.sum(pca.explained_variance_ratio_)
+    #print (np.where(cum_ratio>=0.95))
+    '''step 1.2: KMeans'''
+    from sklearn.cluster import KMeans
+    pca_tsfm_train_test_fingerpringts = np.concatenate((pca_tsfm_trainingApFingerprints,pca_tsfm_testingApFingerprints),axis=0)
+    pca_kmeans = KMeans(n_clusters=15).fit(pca_tsfm_train_test_fingerpringts) #KMeans
+    train_cluster_labels = dataToOne_hotVector(pca_kmeans.labels_[:trainingApFingerprints.shape[0]],trainingApFingerprints.shape[0],15)
+    test_cluster_labels = dataToOne_hotVector(pca_kmeans.labels_[trainingApFingerprints.shape[0]:],testingApFingerprints.shape[0],15)
+    print ('**********先使用PCA降维，再进行KMeans')
 
-    '''step 2: train neural network and test'''
-    nn_train(train_fgprts_1,train_label,train_rp_ids_1,test_fgprts_1,test_rp_ids_1,coord_list,local_rp_id_set)
+    '''step 1.3: Analyse the cluster each RP belongs to, and the set of RPs each cluster consist of'''
+    data_helper.cluster_anls(pca_kmeans.labels_[:trainingApFingerprints.shape[0]],pca_tsfm_trainingApFingerprints,trainingCoordinatesId,coordinatesList)
+
+    '''step 1.4: Separate corresponding fingerprints and rp_id for each cluster label'''
+    for cluster_label in np.unique(pca_kmeans.labels_):
+        train_indices = np.where(pca_kmeans.labels_[:trainingApFingerprints.shape[0]] == cluster_label)
+        train_fingerprints = pca_tsfm_trainingApFingerprints[train_indices]
+        train_rp_ids = trainingCoordinatesId[train_indices]
+        test_indices = np.where(pca_kmeans.labels_[trainingApFingerprints.shape[0]:] == cluster_label)
+        test_fingerprints = pca_tsfm_testingApFingerprints[test_indices]
+        test_rp_ids = testingCoordinatesId[test_indices]
+        np.save('./Data_Statistics/Fgprt_Rp4Cluster/PCA/train_fingerprints_%d'%cluster_label,train_fingerprints)
+        np.save('./Data_Statistics/Fgprt_Rp4Cluster/PCA/train_rp_ids_%d'%cluster_label,train_rp_ids)
+        np.save('./Data_Statistics/Fgprt_Rp4Cluster/PCA/test_fingerprints_%d'%cluster_label,test_fingerprints)
+        np.save('./Data_Statistics/Fgprt_Rp4Cluster/PCA/test_rp_ids_%d'%cluster_label,test_rp_ids)
+
+    '''step 2: Train neural network amZd test'''
+    nn_train(pca_tsfm_trainingApFingerprints,train_cluster_labels,pca_tsfm_testingApFingerprints,test_cluster_labels)
 
 
 if __name__ == '__main__':
-    #python3 second_staged_nn.py ./second_parameters.json
+    #python3 train_bpnn_pca.py ./parameters.json
     tf.app.run()
