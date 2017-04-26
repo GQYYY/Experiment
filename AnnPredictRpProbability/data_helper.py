@@ -42,7 +42,7 @@ def cluster_anls(cluster_labels,fingerprints,coords_id,coords_list):
     i = 0
     for coord_id in uniq_coords_id:
         i+=1
-        sheet1.write(i,0,str(tuple(coords_list.tolist()[coord_id])))
+        sheet1.write(i,0,str(tuple(coords_list.tolist()[int(coord_id)])))
         sheet1.write(i,1,str(np.unique(\
             cluster_labels[np.where(coords_id == coord_id)]\
             .tolist())))

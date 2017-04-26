@@ -151,21 +151,23 @@ def nn_train(train_set,train_label,test_set,test_label):
 
 def main(_):
     '''step 0: load original train_set,train_label and original test_set, test_label'''
-    trainingApFingerprints = np.load('./Data/Original/trainingApFingerprints.npy') +100
-    trainingCoordinatesId = np.load('./Data/Original/trainingCoordinatesId.npy')
-    testingApFingerprints = np.load('./Data/Original/testingApFingerprints.npy') +100
-    testingCoordinatesId = np.load('./Data/Original/testingCoordinatesId.npy')
+    trainingApFingerprints = np.load('./Data/trainingApFingerprints.npy') +100
+    trainingCoordinatesId = np.load('./Data/trainingCoordinatesId.npy')
+    testingApFingerprints = np.load('./Data/testingApFingerprints.npy') +100
+    testingCoordinatesId = np.load('./Data/testingCoordinatesId.npy')
     coordinatesList = np.load('./Data/Original/rpCoordinatesList.npy')
 
     '''step 1: PCA feature reduction and then KMeans'''
     '''step 1.1: PCA feature reduction'''
     from sklearn.decomposition import PCA
-    pca = PCA() #PCA feature reduction
+    pca = PCA()#n_components=25) #PCA feature reduction
     pca_tsfm_trainingApFingerprints = pca.fit(trainingApFingerprints).transform(trainingApFingerprints)
     pca_tsfm_testingApFingerprints = pca.transform(testingApFingerprints)
     #print ('PCA explained variance ratio: %s' % str(pca.explained_variance_ratio_))
-    #cum_ratio = np.cumsum(pca.explained_variance_ratio_)/np.sum(pca.explained_variance_ratio_)
-    #print (np.where(cum_ratio>=0.95))
+    cum_ratio = np.cumsum(pca.explained_variance_ratio_)
+    print (np.where(cum_ratio>=0.90))
+    np.save('./Data/pca_tsfm_trainingApFinerprints',pca_tsfm_trainingApFingerprints)
+    np.save('./Data/pca_tsfm_testingApFingerprints',pca_tsfm_testingApFingerprints)
     '''step 1.2: KMeans'''
     from sklearn.cluster import KMeans
     pca_tsfm_train_test_fingerpringts = np.concatenate((pca_tsfm_trainingApFingerprints,pca_tsfm_testingApFingerprints),axis=0)
@@ -185,15 +187,15 @@ def main(_):
         test_indices = np.where(pca_kmeans.labels_[trainingApFingerprints.shape[0]:] == cluster_label)
         test_fingerprints = pca_tsfm_testingApFingerprints[test_indices]
         test_rp_ids = testingCoordinatesId[test_indices]
-        np.save('./Data_Statistics/Fgprt_Rp4Cluster/PCA/train_fingerprints_%d'%cluster_label,train_fingerprints)
-        np.save('./Data_Statistics/Fgprt_Rp4Cluster/PCA/train_rp_ids_%d'%cluster_label,train_rp_ids)
-        np.save('./Data_Statistics/Fgprt_Rp4Cluster/PCA/test_fingerprints_%d'%cluster_label,test_fingerprints)
-        np.save('./Data_Statistics/Fgprt_Rp4Cluster/PCA/test_rp_ids_%d'%cluster_label,test_rp_ids)
+        np.save('./Data_Statistics/Fgprt_Rp_for_Cluster/PCA/train_fingerprints_%d'%cluster_label,train_fingerprints)
+        np.save('./Data_Statistics/Fgprt_Rp_for_Cluster/PCA/train_rp_ids_%d'%cluster_label,train_rp_ids)
+        np.save('./Data_Statistics/Fgprt_Rp_for_Cluster/PCA/test_fingerprints_%d'%cluster_label,test_fingerprints)
+        np.save('./Data_Statistics/Fgprt_Rp_for_Cluster/PCA/test_rp_ids_%d'%cluster_label,test_rp_ids)
 
     '''step 2: Train neural network amZd test'''
-    nn_train(pca_tsfm_trainingApFingerprints,train_cluster_labels,pca_tsfm_testingApFingerprints,test_cluster_labels)
+    #nn_train(pca_tsfm_trainingApFingerprints,train_cluster_labels,pca_tsfm_testingApFingerprints,test_cluster_labels)
 
 
 if __name__ == '__main__':
-    #python3 train_bpnn_pca.py ./parameters.json
+    #python3 pca_bpnn.py ./parameters.json
     tf.app.run()

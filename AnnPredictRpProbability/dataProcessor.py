@@ -10,7 +10,7 @@ class dataProcessor:
         #self.path = r'/home/gqy/Desktop/AnnPredictRpProbability/Data/'
         #self.path = r'/home/lirui/Projects/DeepLearning/GQY/GQY-20170225-AnnPositioning/AnnPositioning/Data/' #训练文件和测试文件的路径
         #self.path = r'/Users/tmac/Desktop/AnnPredictRpProbability/Data/'
-        self.path = r'/home/gqy/Desktop/Experiment/AnnPredictRpProbability/Data/'
+        self.path = r'./Data/'
         self.apList = self.__getApList() #所有出现的AP的列表，即特征列表
         self.coordList = self.__getCoordinatesList() #训练集和测试集中所有出现的RP的位置坐标列表
         self.traningApFingerprints,self.trainingCoordinates = self.__getApFingerprintsAndCoordinates(self.trainingFile)
@@ -55,18 +55,18 @@ class dataProcessor:
                 fingerprint.append([float(xAxis),float(yAxis)])
                 continue
             if line.startswith('BSSID'):
-    	        apMac= line[6:-1]
+                apMac= line[6:-1]
                 macIndex = self.apList.index(apMac)
-    	        continue
-    	    if line.startswith('SignalStrength'):
-    	        apRssi=line[15:]
+                continue
+            if line.startswith('SignalStrength'):
+                apRssi=line[15:]
                 apRssiList[macIndex] = float(apRssi)
                 continue
             if line.startswith('*'):
                 apRssiInfoWithCorresponing_Coordinates.append(fingerprint)
                 fingerprint = []
         f.close()
-        
+
         apRssiInfoWithCorresponing_Coordinates = np.array(apRssiInfoWithCorresponing_Coordinates)
         if isShuffle:
             #将原始数据打乱顺序，以便后续的训练
@@ -183,15 +183,15 @@ if __name__ == '__main__':
     coordinatesList = dataProcessor.getCoordinatesList()
     apList = dataProcessor.getApList()
 
-    np.save('./Data/Original/trainingApFingerprints',trainingApFingerprints)
-    np.save('./Data/Original/trainingCoordinates',trainingCoordinates)
-    np.save('./Data/Original/trainingCoordinatesId',trainingCoordinatesId)
+    np.save('./Data/trainingApFingerprints',trainingApFingerprints)
+    np.save('./Data/trainingCoordinates',trainingCoordinates)
+    np.save('./Data/trainingCoordinatesId',trainingCoordinatesId)
     np.save('./Data/Original/originalTrainingApFingerprints',originalTrainingApFingerprints)
     np.save('./Data/Original/originalTrainingCoordinates',originalTrainingCoordinates)
     np.save('./Data/Original/originalTrainingCoordinatesId',originalTrainingCoordinatesId)
-    np.save('./Data/Original/testingApFingerprints',testingApFingerprints)
-    np.save('./Data/Original/testingCoordinates',testingCoordinates)
-    np.save('./Data/Original/testingCoordinatesId',testingCoordinatesId)
+    np.save('./Data/testingApFingerprints',testingApFingerprints)
+    np.save('./Data/testingCoordinates',testingCoordinates)
+    np.save('./Data/testingCoordinatesId',testingCoordinatesId)
     np.save('./Data/Original/originalTestingApFingerprints',originalTestingApFingerprints)
     np.save('./Data/Original/originalTestingCoordinates',originalTestingCoordinates)
     np.save('./Data/Original/originalTestingCoordinatesId',originalTestingCoordinatesId)

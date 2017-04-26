@@ -164,6 +164,14 @@ def nn_train(train_set,train_label,train_rp_ids,test_set,test_rp_ids,coord_list,
         for i in range(real_coords.shape[0]):
             print(np.round(real_coords[i],2),'  ',np.round(est_coords[i],2))
 
+def top_k(sorted_probs):
+    top_k = np.array([])
+    for sorted_prob in sorted_probs:
+        for i in range(sorted_prob.shape[0]):
+            if sorted_prob[i] <= 0.2:
+                top_k = np.append(top_k,i)
+                break
+    return top_k.astype(np.int32)
 def estimate_result(original_probs,rp_coord_id,threshold,coord_list,local_rp_id_set):
     '''
     original_probs:神经网络输出的概率向量
@@ -174,7 +182,11 @@ def estimate_result(original_probs,rp_coord_id,threshold,coord_list,local_rp_id_
     '''
     sorted_probs = np.sort(original_probs,axis=1)[:,::-1]
     sorted_probs_indices = np.argsort(original_probs,axis=1)[:,::-1]
+    #print(sorted_probs)
     top_k = np.asarray([np.where(np.cumsum(np.round(sorted_probs[i],4)) >= threshold)[0][0] for i in range(sorted_probs.shape[0])])+1
+    #top_K = top_k(sorted_probs)
+    #print ('-------------------------',top_k.shape)
+    #print (top_K.shape)
     rp_coord_in_use = []      #参与预测位置计算的rp坐标
     weights = []              #各坐标对应的权重
     for probs_,indices_,top_k_ in zip(sorted_probs,sorted_probs_indices,top_k):
@@ -184,6 +196,7 @@ def estimate_result(original_probs,rp_coord_id,threshold,coord_list,local_rp_id_
         weights.append(top_k_probs/np.sum(top_k_probs))
     rp_coord_in_use = np.array(rp_coord_in_use)
     weights = np.array(weights)
+    #print(weights)
     est_coord = []
     for rp_coords_, weights_ in zip(rp_coord_in_use,weights):
         rp_x = rp_coords_[:,0]
@@ -199,29 +212,28 @@ def estimate_result(original_probs,rp_coord_id,threshold,coord_list,local_rp_id_
     return mean_dist_err,est_coord, real_coord
 
 
-
 def main(_):
     '''step 0: load train_set,train_label and test_set, test_label for each cluster'''
     '''step 0.1:load PCA-transformed data'''
-    #train_fgprts_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/PCA/train_fingerprints_1.npy')  #train set for cluster, after PCA reduction
-    #train_rp_ids_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/PCA/train_rp_ids_1.npy')        #rp coordinate id in train set
-    #test_fgprts_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/PCA/test_fingerprints_1.npy')    #test set for cluster, after PCA reduction
-    #test_rp_ids_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/PCA/test_rp_ids_1.npy')          #rp coordinate if in test set
+    train_fgprts_4 = np.load('./Data_Statistics/Fgprt_Rp_for_Cluster/PCA/train_fingerprints_4.npy')  #train set for cluster, after PCA reduction
+    train_rp_ids_4 = np.load('./Data_Statistics/Fgprt_Rp_for_Cluster/PCA/train_rp_ids_4.npy')        #rp coordinate id in train set
+    test_fgprts_4 = np.load('./Data_Statistics/Fgprt_Rp_for_Cluster/PCA/test_fingerprints_4.npy')    #test set for cluster, after PCA reduction
+    test_rp_ids_4 = np.load('./Data_Statistics/Fgprt_Rp_for_Cluster/PCA/test_rp_ids_4.npy')          #rp coordinate if in test set
+    coord_list = np.load('./Data/Original/rpCoordinatesList.npy')                                #global coordinatesList for all fingerprints
+    local_rp_id_set = np.unique(train_rp_ids_4)                                                  #local coordinateList for this cluster
+    '''step 4.4:load LDA-transformed data'''
+    #train_fgprts_4 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/LDA/train_fingerprints_4.npy')  #train set for cluster, after LDA reduction
+    #train_rp_ids_4 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/LDA/train_rp_ids_4.npy')        #rp coordinate id in train set
+    #test_fgprts_4 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/LDA/test_fingerprints_4.npy')    #test set for cluster, after LDA reduction
+    #test_rp_ids_4 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/LDA/test_rp_ids_4.npy')          #rp coordinate if in test set
     #coord_list = np.load('./Data/Original/rpCoordinatesList.npy')                                #global coordinatesList for all fingerprints
-    #local_rp_id_set = np.unique(train_rp_ids_1)                                                  #local coordinateList for this cluster
-    '''step 0.2:load LDA-transformed data'''
-    train_fgprts_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/LDA/train_fingerprints_1.npy')  #train set for cluster, after LDA reduction
-    train_rp_ids_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/LDA/train_rp_ids_1.npy')        #rp coordinate id in train set
-    test_fgprts_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/LDA/test_fingerprints_1.npy')    #test set for cluster, after LDA reduction
-    test_rp_ids_1 = np.load('./Data_Statistics/Fgprt_Rp4Cluster/LDA/test_rp_ids_1.npy')          #rp coordinate if in test set
-    coord_list = np.load('./Data/Original/rpCoordinatesList.npy')                               #global coordinatesList for all fingerprints
-    local_rp_id_set = np.unique(train_rp_ids_1)                                                 #local coordinateList for this cluster
+    #local_rp_id_set = np.unique(train_rp_ids_4)                                                  #local coordinateList for this cluster
 
-    '''step 1: transform the train_rp_ids to one-hot vectors for nn training'''
-    train_label = train_data_to_one_hot_vector(train_rp_ids_1,local_rp_id_set)
+    '''step 4: transform the train_rp_ids to one-hot vectors for nn training'''
+    train_label = train_data_to_one_hot_vector(train_rp_ids_4,local_rp_id_set)
 
-    '''step 2: train neural network and test'''
-    nn_train(train_fgprts_1,train_label,train_rp_ids_1,test_fgprts_1,test_rp_ids_1,coord_list,local_rp_id_set)
+    '''step 4g: train neural network and test'''
+    nn_train(train_fgprts_4,train_label,train_rp_ids_4,test_fgprts_4,test_rp_ids_4,coord_list,local_rp_id_set)
 
 
 if __name__ == '__main__':

@@ -151,10 +151,10 @@ def nn_train(train_set,train_label,test_set,test_label):
 
 def main(_):
     '''step 0: load original train_set,train_label and original test_set, test_label'''
-    trainingApFingerprints = np.load('./Data/Original/trainingApFingerprints.npy') +100
-    trainingCoordinatesId = np.load('./Data/Original/trainingCoordinatesId.npy')
-    testingApFingerprints = np.load('./Data/Original/testingApFingerprints.npy') +100
-    testingCoordinatesId = np.load('./Data/Original/testingCoordinatesId.npy')
+    trainingApFingerprints = np.load('./Data/trainingApFingerprints.npy') +100
+    trainingCoordinatesId = np.load('./Data/trainingCoordinatesId.npy')
+    testingApFingerprints = np.load('./Data/testingApFingerprints.npy') +100
+    testingCoordinatesId = np.load('./Data/testingCoordinatesId.npy')
     coordinatesList = np.load('./Data/Original/rpCoordinatesList.npy')
 
     '''step 1: LDA feature reduction and then KMeans'''
@@ -166,6 +166,8 @@ def main(_):
     #print ('lda explained variance ratio: %s' % str(lda.explained_variance_ratio_))
     #cum_ratio = np.cumsum(lda.explained_variance_ratio_)/np.sum(lda.explained_variance_ratio_)
     #print (np.where(cum_ratio>=0.95))
+    np.save('./Data/lda_tsfm_trainingApFingerprints',lda_tsfm_trainingApFingerprints)
+    np.save('./Data/lda_tsfm_testingApFingerprints',lda_tsfm_testingApFingerprints)
     '''step 1.2: KMeans'''
     from sklearn.cluster import KMeans
     lda_tsfm_train_test_fingerpringts = np.concatenate((lda_tsfm_trainingApFingerprints,lda_tsfm_testingApFingerprints),axis=0)
@@ -175,7 +177,7 @@ def main(_):
     print ('**********先使用LDA降维，再进行KMeans')
 
     '''step 1.3: Analyse the cluster each RP belongs to, and the set of RPs each cluster consist of'''
-    data_helper.cluster_anls(lda_kmeans.labels_[:trainingApFingerprints.shape[0]],lda_tsfm_trainingApFingerprints,trainingCoordinatesId,coordinatesList)
+    #data_helper.cluster_anls(lda_kmeans.labels_[:trainingApFingerprints.shape[0]],lda_tsfm_trainingApFingerprints,trainingCoordinatesId,coordinatesList)
 
     '''step 1.4: Separate corresponding fingerprints and rp_id for each cluster label'''
     for cluster_label in np.unique(lda_kmeans.labels_):
@@ -191,7 +193,7 @@ def main(_):
         np.save('./Data_Statistics/Fgprt_Rp4Cluster/LDA/test_rp_ids_%d'%cluster_label,test_rp_ids)
 
     '''step 2: Train neural network and test'''
-    nn_train(lda_tsfm_trainingApFingerprints,train_cluster_labels,lda_tsfm_testingApFingerprints,test_cluster_labels)
+    #nn_train(lda_tsfm_trainingApFingerprints,train_cluster_labels,lda_tsfm_testingApFingerprints,test_cluster_labels)
 
 
 if __name__ == '__main__':
